@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1,maximum-scale=1,user-scalable=no">
+		<meta name="apple-mobile-web-app-capable" content="yes">
+		<meta name="apple-mobile-web-app-status-bar-style" content="black">
+		<!--标准mui.css-->
+		<link rel="stylesheet" href="css/mui.min.css">
+		<link rel="stylesheet" href="loading/loadings.css">
+		<script src="js/jquery.js"></script>
+		<script src="js/mui.min.js"></script>
+		<script src="js/vue.js"></script>
+		<script src="loading/loadings.js"></script>
+		<title>个人中心</title>
+		<style type="text/css">
+			.mui-content{
+				background: white;
+			}
+			.menu{
+				height: 45px;
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				margin-left: 1rem;
+				border-bottom: 1px solid rgb(240,240,240);
+				font-size: .9rem;
+			}
+			.menus{
+				display: flex;
+				flex-direction: row;
+			}
+			.menu img{
+				width: 20px;height: 20px;
+				margin-right: 5px;
+			}
+			.menu img:last-child{
+				margin-right: 20px;
+			}
+			.menus-parent:active{
+				background: rgb(240,240,240);
+			}
+		</style>
+		<script type="text/javascript">
+			function GotoPsd(){
+				window.location.href='password.html'
+			}
+			function GotoSite(){
+				window.location.href='SiteList.html'
+			}
+			function GotoAddUser(){
+				window.location.href='registerUser.html'
+			}
+			function GotoAddactivity(){
+				window.location.href='activityList.html'
+			}
+			function GotoUserManger(){
+				window.location.href='UserManger.html'
+			}
+			function GotoMerchant(){
+				window.location.href='AddMerchant.html'
+			}
+			function LoginOut(){
+				mui.showLoading("退出中..","div");
+				setTimeout(()=>{
+					mui.hideLoading()
+					localStorage.removeItem('UserInfo')
+					history.back(-1)
+				},500)
+			}
+		</script>
+	</head>
+	<body style="background: white;">
+		<header class="mui-bar mui-bar-nav">
+			<span class="mui-icon  mui-pull-left" onclick="history.back(-1);">
+				<img src="img/left.png" style="width: 25px;height: 25px;">
+			</span>
+			<h1 class="mui-title">个人中心</h1>
+		</header>
+		<div class="mui-content" id="Acts">
+			<div class="menus-parent" onclick='GotoAddactivity()' v-if="Flag">
+				<div class="menu">
+					<div class="menus">
+						<img src="img/hudong.png" >
+						<div class="menu-left">
+							活动管理
+						</div>
+					</div>
+					<img src="img/right.png">
+				</div>
+			</div>
+			<div class="menus-parent" onclick='GotoPsd()'>
+				<div class="menu">
+					<div class="menus">
+						<img src="img/psd.png" >
+						<div class="menu-left">
+							更改登录密码
+						</div>
+					</div>
+					<img src="img/right.png" >
+				</div>
+			</div>
+			<div class="menus-parent" onclick="GotoUserManger()" v-if="Flag">
+				<div class="menu">
+					<div class="menus">
+						<img src="img/manage.png" >
+						<div class="menu-left">
+							用户管理
+						</div>
+					</div>
+					<img src="img/right.png" >
+				</div>
+			</div>
+			<div class="menus-parent" onclick="GotoSite()" v-if="Flag">
+				<div class="menu">
+					<div class="menus">
+						<img src="img/station.png" >
+						<div class="menu-left">
+							站点管理
+						</div>
+					</div>
+					<img src="img/right.png" >
+				</div>
+			</div>
+			<!-- <div class="menus-parent" onclick="GotoMerchant()" v-if="Flag">
+				<div class="menu">
+					<div class="menus">
+						<img src="img/adduser.png" >
+						<div class="menu-left">
+							新增商户
+						</div>
+					</div>
+					<img src="img/right.png" >
+				</div>
+			</div> -->
+		</div>
+		<button type="button" onclick="LoginOut()" style="height: 40px;line-height: 40px;padding: 0;width: 70%;position: absolute;bottom:40px;left: 15%;" class="mui-btn mui-btn-warning mui-btn-block">退出</button>
+	</body>
+	<script type="text/javascript">
+		new Vue({
+			el: '#Acts',
+			data: {
+				Flag:false
+			},
+			created(){
+				var UserInfo=JSON.parse(JSON.parse(localStorage.getItem('UserInfo')))
+				if(parseInt(UserInfo.PM0003_ROLE_ID)==1){
+					this.Flag=true
+				}
+				else{
+					this.Flag=false
+				}
+			},
+			methods:{
+			}
+		})
+	</script>
+</html>

@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title></title>
+		<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+		<!-- <meta name="apple-mobile-web-app-capable" content="yes">
+		<meta name="apple-mobile-web-app-status-bar-style" content="black"> -->
+		<!-- 最新版本的 Bootstrap 核心 CSS 文件 -->
+		<link rel="stylesheet" href="css/mui.min.css">
+		<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@3.3.7/dist/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+		<link rel="stylesheet" href="loading/loadings.css">
+		<script src="js/jquery.js"></script>
+		<script src='https://cdn.bootcss.com/Chart.js/2.7.3/Chart.js'></script>
+		<script src="js/mui.min.js"></script>
+		<script src="loading/loadings.js"></script>
+		<script src="js/mui.picker.min.js"></script>
+		<script src="js/mui.picker.js"></script>
+		<script src="js/mui.poppicker.js"></script>
+		<script src="https://res.wx.qq.com/open/js/jweixin-1.0.0.js"></script>
+		<script src="util/crypto-js.js"></script>
+		<script src="util/util.js"></script>
+		<script src="util/md5.js"></script>
+		<script src="util/api.js"></script>
+		<script src="jsbin/jquery.min.js"></script>
+		<script src="jsbin/echarts.common.min.js"></script>
+		<script src="js/vue.js"></script>
+		<style type="text/css">
+			.table-responsive{
+				border: 0;
+			}
+			tbody tr:active{
+				background: rgb(240,240,240);
+			}
+			.Noactive{
+				background: #C8C7CC;
+			}
+			tr{
+				border-bottom: 1px solid #CCCCCC;
+				height: 40px;
+			}
+			.table>tbody>tr>td, .table>tbody>tr>th, .table>tfoot>tr>td, .table>tfoot>tr>th, .table>thead>tr>td, .table>thead>tr>th{
+				border-top: 0;
+			}
+			.table-responsive{height: calc(100vh - 44px - 100px);overflow-y: scroll;}
+			.mui-popup-input input{border-radius: 5px;height: 30px;}
+		</style>
+		
+	</head>
+	<body>
+		<div >
+			<header class="mui-bar mui-bar-nav">
+				<span class=" mui-icon  mui-pull-left" onclick='history.back(-1)'>
+					<img src="img/left.png" style="width: 25px;height: 25px;">
+				</span>
+				<h1 class="mui-title">电子券数据</h1>
+			</header>
+			<div class="table-responsive" style="margin-top: 60px;">	
+			<table class="table browser-table" id="List">
+				<thead>
+					<tr>
+						<th>手机号</th>
+						<th>活动名称</th>
+						<th>状态</th>
+						<th>金额</th>
+					</tr>
+				</thead>
+				<tbody>
+					<tr class="gradeX" v-for="(item,index) in CoponList" :key="index" @click="CouponDetail(item)">
+						<td>{{item.PM0002_RECIPIENT}}</td>
+						<td>{{item.PM0003_REAL_NAME}}</td>
+						<td style="display: flex;align-items: center;height: 37px;">
+							<div v-if="item.PM0002_STATE!='1'" style="width: 10px;height: 10px;background: red;border-radius: 50%;"></div>
+							<div v-else style="width: 10px;height: 10px;background:green;border-radius: 50%;"></div>
+						</td>
+						<td>{{item.PM0002_COUPON_AMOUNT/100}}</td>
+						<!-- <td>
+							<div v-if="item.PM0002_STATE=='1'">
+								<span @click="CouponDetail(item)">详情</span>&nbsp;&nbsp;/&nbsp;&nbsp;<span @click="withdraw(item)">撤回</span>
+							</div>
+							<div v-else>
+								<span @click="CouponDetail(item)">详情</span>&nbsp;&nbsp;/&nbsp;&nbsp;<span>已撤回</span>
+							</div>
+						</td> -->
+					</tr>
+				</tbody>
+			</table>
+	<!-- <nav aria-label="...">
+	  <ul class="pager">
+		<li class="previous"><span><span aria-hidden="true">&larr;</span> 上一页</span></li>
+		<li style="height: 32px;line-height: 32px;">共<text style="color: red;">1</text>页,当前第<text style="color: red;">1</text>页</li>
+		<li class="next "><span class="Noactive">下一页<span aria-hidden="true">&rarr;</span></span></li>
+	  </ul>
+	</nav> -->
+		</div>
+		<button id="promptBtn" type="button" style="height: 40px;line-height: 40px;padding: 0;width: 70%;position: absolute;bottom:10px;left: 15%;" class="mui-btn mui-btn-warning mui-btn-block">导出</button>
+	</div>
+	</body>
+	<!-- <script src="js/jquery.js"></script>
+	<script src="js/mui.min.js"></script>
+	<script src="loading/loadings.js"></script> -->
+	<script type="text/javascript">
+		$(function(){
+			mui.showLoading("正在加载..","div");
+			setTimeout(()=>{
+				mui.hideLoading()
+			},500)
+		})
+	</script>
+	
+	<script type="text/javascript">
+		const phone=window.location.href.split('=')[1]
+		new Vue({
+			el: '#List',
+			data: {
+				CouponJSon:'',
+				List:[],
+				CoponList:[],
+				phones:phone
+			},
+			created(){
+				this.CouponJSon=JSON.parse(localStorage.getItem('CouponJson'))
+				console.log(this.CouponJSon)
+				var flag=this.FlagToken()
+				if(flag){
+					this.GetList()
+				}
+			},
+			methods:{
+				FlagToken(){
+					var UserInfo=JSON.parse(JSON.parse(localStorage.getItem('UserInfo')))
+					var UserPsd=md5(JSON.parse(localStorage.getItem('UserLoginInfo')).password).slice(0,16).toUpperCase()
+					var UserToken={
+						method:'loginstate',
+						userid:UserInfo.PM0003_ID,
+						token:UserInfo.PM0003_TOKEN
+					}
+					console.log(UserToken)
+					console.log(UserPsd)
+					var Flag=false
+					var TokenAesJson=encodeURIComponent(encrypt(JSON.stringify(UserToken),UserPsd))
+					$.ajax(`${GetLoginState}?params=${TokenAesJson}&smsusername=${UserInfo.PM0003_PHONE}`,{
+						data:{},
+						dataType:'json',//服务器返回json格式数据
+						type:'POST',//HTTP请求类型
+						async:false,  //同步方式
+						timeout:10000,//超时时间设置为10秒；
+						success:function(response){
+							console.log(response)
+							if(parseInt(response.LOGINSTATUS)==2&&parseInt(response.RESULT)==0){
+								mui.toast("账号已在另一方登录，已下线",{
+									duration:500
+								});
+								localStorage.removeItem('UserInfo')
+								localStorage.removeItem('UserLoginInfo')
+								setTimeout(function(){
+									window.location.href='index.html'
+								},600)
+								Flag=false
+							}
+							else{
+								Flag=true
+							}
+						},
+						error:function(xhr,type,errorThrown){
+							console.log(xhr)
+						}
+					});
+					return Flag
+				},
+				GetList(){
+					var _this=this
+					var UserInfo=JSON.parse(localStorage.getItem('UserInfo'))
+					var AesJson=encodeURIComponent(encrypt(encodeURIComponent(JSON.stringify(this.CouponJSon)),JSON.parse(UserInfo).PM0003_TOKEN))
+					$.ajax(`${CouponInfoMs}?params=${AesJson}&smsuserid=${JSON.parse(UserInfo).PM0003_ID}`,{
+						data:{},
+						dataType:'json',//服务器返回json格式数据
+						type:'POST',//HTTP请求类型
+						timeout:10000,//超时时间设置为10秒；
+						success:function(response){
+							_this.List=JSON.parse(response.DATA)
+							_this.List.forEach((item)=>{
+								item.PM0002_COUPON_AMOUNT=parseFloat(item.PM0002_COUPON_AMOUNT)
+							})
+							console.log(_this.List)
+							if(_this.phones=='null'){
+								_this.CoponList=_this.List
+								return
+							}
+							_this.List.forEach((item)=>{
+								if(item.PM0002_RECIPIENT==_this.phones){
+									_this.CoponList.push(item)
+								}
+							})
+							console.log(_this.CoponList)
+						},
+						error:function(xhr,type,errorThrown){
+							console.log(xhr)
+						}
+					});
+				},
+				CouponDetail(item){
+					localStorage.setItem('DetailFlow',JSON.stringify(item))
+					window.location.href='DetailFlowCode.html'
+				}
+			}
+		})
+	</script>
+	<script type="text/javascript">
+		var UserInfo=JSON.parse(localStorage.getItem('UserInfo'))
+		var datas=JSON.parse(localStorage.getItem('CouponJson'))
+		mui.init({
+			swipeBack: true //启用右滑关闭功能
+		});
+		var reg=/^([a-zA-Z]|[0-9])(\w|\-)+@[a-zA-Z0-9]+\.([a-zA-Z]{2,4})$/
+		document.getElementById("promptBtn").addEventListener('tap', function(e) {
+			e.detail.gesture.preventDefault(); //修复iOS 8.x平台存在的bug，使用plus.nativeUI.prompt会造成输入法闪一下又没了
+			var btnArray = ['取消', '导出'];
+			mui.prompt('请输入您的邮箱：', '输入邮箱', '您好', btnArray, function(e) {
+				if (e.index == 1) {
+					if(!reg.test(e.value)){
+						mui.toast('邮箱格式错误，请正确输入。')
+					}
+					else{
+						mui.showLoading("正在导出..","div");
+						datas.email=e.value
+						console.log(datas)
+						var AesJson=encodeURIComponent(encrypt(encodeURIComponent(JSON.stringify(datas)),JSON.parse(UserInfo).PM0003_TOKEN))
+						console.log(JSON.parse(UserInfo).PM0003_TOKEN)
+						$.ajax(`${CouponInfoMs}?params=${AesJson}&smsuserid=${JSON.parse(UserInfo).PM0003_ID}`,{
+							data:{},
+							dataType:'json',//服务器返回json格式数据
+							type:'POST',//HTTP请求类型
+							timeout:10000,//超时时间设置为10秒；
+							success:function(response){
+								console.log(response)
+								if(response.RESULT==1&&response.MESSAGE=='获取电子券列表成功'){
+									setTimeout(()=>{
+										mui.hideLoading()
+										mui.toast('导出成功，已发至对应的邮箱账号。')
+									},1000)
+								}
+								else{
+									setTimeout(()=>{
+										mui.hideLoading()
+										mui.toast('导出失败')
+									},1000)
+								}
+							},
+							error:function(xhr,type,errorThrown){
+								console.log(xhr)
+							}
+						});
+						console.log(datas)
+					}
+				}
+			},'div')
+		});
+	</script>
+</html>

@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html class="ui-page-login">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no"/>
+    <meta name="apple-mobile-web-app-capable" content="yes"/>
+    <meta name="apple-mobile-web-app-status-bar-style" content="black"/>
+    <title>数据详情</title>
+    <link href="css/mui.min.css" rel="stylesheet"/>
+	<link rel="stylesheet" href="loading/loadings.css">
+	<script src="js/jquery.js"></script>
+	<script src="js/vue.js"></script>
+	<script src="js/mui.min.js"></script>
+	<script src="util/crypto-js.js"></script>
+	<script src="util/util.js"></script>
+	<script src="util/md5.js"></script>
+	<script src="util/api.js"></script>
+	<script src="loading/loadings.js"></script>
+    <style>
+        .hqyzm{
+            position: absolute;
+            right: 10px;
+            top: 4px;
+			width: 90px;
+            background-color: #f0ad4e;
+            color: #fff;
+            border-radius: 30px;
+            border: none;
+        }
+		.mui-content{
+			background: white;
+			margin-top: 20px;
+		}
+		.mui-input-group:after,.mui-input-group:before{
+			height: 0;
+		}
+		input::-webkit-input-placeholder {
+			color: black;
+			font-size: 1rem;
+		}
+		#site option{
+			
+		}
+		.mui-input-row label~input, .mui-input-row label~select, .mui-input-row label~textarea{
+			width: 55%;
+		}
+    </style>
+</head>
+<body style="background: white;">
+    <header class="mui-bar mui-bar-nav">
+        <span class="mui-action-back mui-icon  mui-pull-left">
+        	<img src="img/left.png" style="width: 25px;height: 25px;">
+        </span>
+        <h1 class="mui-title">数据详情</h1>
+    </header>
+	<!-- 手机号验证 -->
+    <div class="mui-content" id="Deatil">
+        <form class="mui-input-group">
+            <div class="mui-input-row" style="height: 50px;">
+                <label style="margin: 15px 15px;padding: 0;width: 35%;border-right: 1px solid rgb(240,240,240);">手机号</label>
+                <input type="text" v-model="DeatilJson.PM0002_RECIPIENT"   disabled style="height: 50px;" class="mui-input-clear mui-input"/>
+            </div>
+			<!-- <div class="mui-input-row" style="height: 50px;">
+			    <label style="margin: 15px 15px;padding: 0;width: 35%;border-right: 1px solid rgb(240,240,240);">发放券码</label>
+			    <input type="text" v-model="DeatilJson.PM0002_COUPON"   disabled style="height: 50px;" class="mui-input-clear mui-input"/>
+			</div> -->
+			<div class="mui-input-row" style="height: 50px;">
+			    <label style="margin: 15px 15px;padding: 0;width: 35%;border-right: 1px solid rgb(240,240,240);">发放人</label>
+			    <input type="text" v-model="DeatilJson.PM0006_NAME"  disabled style="height: 50px;" class="mui-input-clear mui-input"/>
+			</div>
+			<div class="mui-input-row" style="height: 50px;">
+			    <label style="margin: 15px 15px;padding: 0;width: 35%;border-right: 1px solid rgb(240,240,240);">发放站点</label>
+			    <input type="text" v-model="DeatilJson.PM0007_NAME" disabled style="height: 50px;" class="mui-input-clear mui-input"/>
+			</div>
+			<div class="mui-input-row" style="height: 50px;">
+			    <label style="margin: 15px 15px;padding: 0;width: 35%;border-right: 1px solid rgb(240,240,240);">发放时间</label>
+			    <input type="text" v-model="DeatilJson.PM0002_DATE"  disabled style="height: 50px;" class="mui-input-clear mui-input"/>
+			</div>
+			<div class="mui-input-row" style="height: 50px;">
+			    <label style="margin: 15px 15px;padding: 0;width: 35%;border-right: 1px solid rgb(240,240,240);">发放金额</label>
+			    <input type="text"  v-model="DeatilJson.PM0002_COUPON_AMOUNT/100"  disabled style="height: 50px;" class="mui-input-clear mui-input"/>
+			</div>
+			<div class="mui-input-row" style="height: 50px;">
+			    <label style="margin: 15px 15px;padding: 0;width: 35%;border-right: 1px solid rgb(240,240,240);">被发放人</label>
+			    <input type="text" v-model="DeatilJson.PM0001_ANAME"   disabled style="height: 50px;" class="mui-input-clear mui-input"/>
+			</div>
+			<div class="mui-input-row" style="display: flex;justify-content: space-between;height: 50px;">
+			    <label style="margin: 15px 15px;padding: 0;width: 35%;border-right: 1px solid rgb(240,240,240);">发放状态</label>
+			    <div id="" style="width: 50%;display: flex;align-items: center;">
+			    	<div v-if="DeatilJson.PM0002_STATE!='1'" style="width: 10px;height: 10px;background: red;border-radius: 50%;"></div>
+					<div v-else style="width: 10px;height: 10px;background:green;border-radius: 50%;"></div>
+			    </div>
+			</div>
+        </form>
+		<button v-if="DeatilJson.PM0002_STATE=='1'" type="button" @click="GoBack()" style="height: 40px;line-height: 40px;padding: 0;width: 70%;position: absolute;bottom:60px;left: 15%;" class="mui-btn mui-btn-warning mui-btn-block">撤回</button>
+		<button v-else-if="DeatilJson.PM0002_STATE=='2'" type="button" @click="GoBack()" style="height: 40px;line-height: 40px;padding: 0;width: 70%;position: absolute;bottom:60px;left: 15%;" class="mui-btn mui-btn-warning mui-btn-block">已撤回</button>
+		<!-- <button v-if="DeatilJson.PM0002_STATE=='1'" type="button" @click="Reset()" style="height: 40px;line-height: 40px;padding: 0;width: 70%;position: absolute;bottom:0px;left: 15%;" class="mui-btn mui-btn-warning mui-btn-block">重推</button> -->
+	</div>
+	<script type="text/javascript">
+		new Vue({
+			el: '#Deatil',
+			data: {
+				DeatilJson:{},
+				Status:false,
+			},
+			created(){
+				var UserInfo=JSON.parse(localStorage.getItem('UserInfo'))
+				console.log(JSON.parse(UserInfo).PM0003_ROLE_ID)
+				if(parseInt(JSON.parse(UserInfo).PM0003_ROLE_ID)==2){
+					this.Status=true
+				}
+				this.DeatilJson=JSON.parse(localStorage.getItem('DetailFlow'))
+				this.DeatilJson.PM0002_DATE=this.DeatilJson.PM0002_DATE.slice(0,10)
+				console.log(this.DeatilJson)
+			},
+			methods:{
+				GoBack(){
+					this.withdraw(this.DeatilJson)
+				},
+				Reset(){
+					var UserInfo=JSON.parse(localStorage.getItem('UserInfo'))
+					mui.showLoading("重推中..","div");
+					json={
+						coupon_no:this.DeatilJson.PM0002_COUPON,
+					}
+					console.log(json)
+					console.log(JSON.parse(UserInfo).PM0003_TOKEN)
+					console.log(JSON.parse(UserInfo).PM0003_ID)
+					var AesJson=encodeURIComponent(encrypt(JSON.stringify(json),JSON.parse(UserInfo).PM0003_TOKEN))
+					$.ajax(`http://192.168.1.4:8080/scmanage09232/RePutCouponCode?params=${AesJson}&smsuserid=${JSON.parse(UserInfo).PM0003_ID}`,{
+						data:{},
+						dataType:'json',//服务器返回json格式数据
+						type:'POST',//HTTP请求类型
+						timeout:10000,//超时时间设置为10秒；
+						success:function(response){
+							console.log(response)
+							mui.hideLoading()
+							// if(response.MESSAGE=='电子券撤销成功'&&parseInt(response.RESULT)==1){
+							// 	setTimeout(function(){
+							// 		mui.hideLoading()
+							// 		mui.toast(response.MESSAGE,{
+							// 			duration:500
+							// 		});
+							// 		setTimeout(function() {
+							// 			window.history.go(-1);
+							// 		}, 500);
+							// 	},1000)
+							// }
+							// else{
+							// 	setTimeout(function(){
+							// 		mui.hideLoading()
+							// 		mui.toast(response.MESSAGE,{
+							// 			duration:1000
+							// 		});
+							// 	},1000)
+							// }
+						},
+						error:function(xhr,type,errorThrown){
+							console.log(xhr)
+						}
+					});
+				},
+				withdraw(item){
+					var indexs=0
+					var _this=this
+					var UserInfo=JSON.parse(localStorage.getItem('UserInfo'))
+					var btnArray = ['取消', '撤回'];
+					mui.confirm('是否撤回当前电子券数据？', '提示', btnArray, function(e) {
+						if (e.index == 1 && indexs==0) {
+							var flagtokens=_this.FlagToken()
+							if(flagtokens){
+								indexs=1
+								mui.showLoading("撤回中..","div");
+								json={
+									method:'revoke',
+									couponno:item.PM0002_COUPON,
+									merchantid:JSON.parse(UserInfo).PM0003_APP_STORE_ID,
+									createuser:item.PM0002_ISSUER
+								}
+								console.log(json)
+								console.log(JSON.parse(UserInfo).PM0003_TOKEN)
+								console.log(JSON.parse(UserInfo).PM0003_ID)
+								var AesJson=encodeURIComponent(encrypt(JSON.stringify(json),JSON.parse(UserInfo).PM0003_TOKEN))
+								$.ajax(`${CouponInfoMs}?params=${AesJson}&smsuserid=${JSON.parse(UserInfo).PM0003_ID}`,{
+									data:{},
+									dataType:'json',//服务器返回json格式数据
+									type:'POST',//HTTP请求类型
+									timeout:10000,//超时时间设置为10秒；
+									success:function(response){
+										console.log(response)
+										if(response.MESSAGE=='电子券撤销成功'&&parseInt(response.RESULT)==1){
+											setTimeout(function(){
+												mui.hideLoading()
+												mui.toast(response.MESSAGE,{
+													duration:500
+												});
+												setTimeout(function() {
+													window.history.go(-1);
+												}, 500);
+											},1000)
+										}
+										else{
+											setTimeout(function(){
+												mui.hideLoading()
+												mui.toast(response.MESSAGE,{
+													duration:1000
+												});
+											},1000)
+										}
+									},
+									error:function(xhr,type,errorThrown){
+										console.log(xhr)
+									}
+								});
+							} else {
+								return
+							}
+						}
+					})
+				},
+				FlagToken(){
+					var UserInfo=JSON.parse(JSON.parse(localStorage.getItem('UserInfo')))
+					var UserPsd=md5(JSON.parse(localStorage.getItem('UserLoginInfo')).password).slice(0,16).toUpperCase()
+					var UserToken={
+						method:'loginstate',
+						userid:UserInfo.PM0003_ID,
+						token:UserInfo.PM0003_TOKEN
+					}
+					console.log(UserToken)
+					console.log(UserPsd)
+					var Flag=false
+					var TokenAesJson=encodeURIComponent(encrypt(JSON.stringify(UserToken),UserPsd))
+					$.ajax(`${GetLoginState}?params=${TokenAesJson}&smsusername=${UserInfo.PM0003_PHONE}`,{
+						data:{},
+						dataType:'json',//服务器返回json格式数据
+						type:'POST',//HTTP请求类型
+						async:false,  //同步方式
+						timeout:10000,//超时时间设置为10秒；
+						success:function(response){
+							console.log(response)
+							if(parseInt(response.LOGINSTATUS)==2&&parseInt(response.RESULT)==0){
+								mui.toast("账号已在另一方登录，已下线",{
+									duration:500
+								});
+								localStorage.removeItem('UserInfo')
+								localStorage.removeItem('UserLoginInfo')
+								setTimeout(function(){
+									window.location.href='index.html'
+								},600)
+								Flag=false
+							}
+							else{
+								Flag=true
+							}
+						},
+						error:function(xhr,type,errorThrown){
+							console.log(xhr)
+						}
+					});
+					return Flag
+				},
+			}
+		})
+	</script>
+</body>
+</html>

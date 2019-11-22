@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>电子券使用明细</title>
+		<meta name="viewport" content="width=device-width, initial-scale=1,maximum-scale=1,user-scalable=no">
+		<meta name="apple-mobile-web-app-capable" content="yes">
+		<meta name="apple-mobile-web-app-status-bar-style" content="black">
+		<!--标准mui.css-->
+		<link rel="stylesheet" href="css/mui.min.css">
+		<link rel="stylesheet" href="loading/loadings.css">
+		<link rel="stylesheet" type="text/css" href="css/mui.picker.min.css" />
+		<link href="css/mui.picker.css" rel="stylesheet" />
+		<link href="css/mui.poppicker.css" rel="stylesheet" />
+		<script src="js/jquery.js"></script>
+		<script src="js/mui.min.js"></script>
+		<script src="loading/loadings.js"></script>
+		<script src="js/mui.picker.min.js"></script>
+		<script src="js/mui.picker.js"></script>
+		<script src="js/mui.poppicker.js"></script>
+		<script src="util/crypto-js.js"></script>
+		<script src="util/util.js"></script>
+		<script src="util/md5.js"></script>
+		<script src="util/api.js"></script>
+		<script src="jsbin/jquery.min.js"></script>
+		<script src="js/vue.js"></script>
+		<style type="text/css">
+			.items{margin-top: 40px;padding: 0 20px;}
+		</style>
+	</head>
+	<body style="background:white;">
+		<header class="mui-bar mui-bar-nav">
+			<span class=" mui-icon  mui-pull-left" onclick='history.back(-1)'>
+				<img src="img/left.png" style="width: 25px;height: 25px;">
+			</span>
+			<h1 class="mui-title">电子券使用明细</h1>
+		</header>
+		<div class="items">
+			<div class="" style="display: flex;justify-content: space-between;">
+				<div class="select-company startDate" style="width: 45%;" data-options='{"type":"date"}'>
+					<div class="select-company-left slects-date" style="width: 80%;">
+						<span class="startspan"></span>
+					</div>
+					<div class="select-company-right" style="width: 20%;">
+						<img src="img/date.png" style="width: 16px;height: 16px;">
+					</div>
+				</div>
+				<div class="select-company endDate" style="width: 45%;" data-options='{"type":"date"}'>
+					<div class="select-company-left slects-date" style="width: 80%;">
+						<span class="endspan"></span>
+					</div>
+					<div class="select-company-right" style="width: 20%;">
+						<img src="img/date.png" style="width: 16px;height: 16px;">
+					</div>
+				</div>
+			</div>
+			<div class="mui-input-row mui-password" style="margin-top: 40px;">
+				<select id="Hdcheck" style="font-size:1rem;border: 1px solid #ccc!important;padding-left: 10px;border-radius: 0;">
+					<option value ="" style="display: none;">请选择商户状态</option>
+					<option value ="">全部</option>
+					<option value ="">已过期</option>
+					<option value ="">已使用</option>
+					<option value ="">未使用</option>
+					<!-- <option v-for="(item,index) in HdList" :value="item.PM0001_NO">{{item.PM0001_ANAME}}</option> -->
+				</select>
+			</div>
+			<div class="mui-input-row mui-password" style="margin-top: 20px;">
+				<select id="Hdcheck" style="font-size:1rem;border: 1px solid #ccc!important;padding-left: 10px;border-radius: 0;">
+					<option value ="" style="display: none;">请选择电子券请求码</option>
+					<option value ="">全部</option>
+					<!-- <option v-for="(item,index) in HdList" :value="item.PM0001_NO">{{item.PM0001_ANAME}}</option> -->
+				</select>
+			</div>
+			<button type="button" onclick="Select()" style="height: 40px;line-height: 40px;padding:0;position: absolute;left: 10%;bottom: 60px;width: 80%;"class="mui-btn mui-btn-warning mui-btn-block">查询</button>
+		</div>
+	</body>
+	<script type="text/javascript">
+		mui.init({
+			swipeBack: false
+		});
+		(function($,doc) {
+			$('.mui-scroll-wrapper').scroll({
+				indicators: true //是否显示滚动条
+			});
+			var startdate = $('.startDate');
+			var startspan=$(".startspan")[0];
+			var enddate = $('.endDate');
+			var endspan=$(".endspan")[0];
+			//开始日期
+			startdate[0].addEventListener('tap', function() {
+				var _self = this;
+				if(_self.picker) {
+					_self.picker.show(function (rs) {
+						console.log(rs)
+						startspan.innerText =rs.text;
+						_self.picker.dispose();
+						_self.picker = null;
+					});
+				} else {
+					var optionsJson = this.getAttribute('data-options') || '{}';
+					var options = JSON.parse(optionsJson);
+					var id = this.getAttribute('id');
+						_self.picker = new $.DtPicker(options);
+						_self.picker.show(function(rs) {
+						startspan.innerText =rs.text;
+						_self.picker.dispose();
+						_self.picker = null;
+					});
+				}			
+			}, false);
+			//结束日期
+			enddate[0].addEventListener('tap', function() {
+				var _self = this;
+				if(_self.picker) {
+					_self.picker.show(function (rs) {
+						console.log(rs)
+						endspan.innerText =rs.text;
+						_self.picker.dispose();
+						_self.picker = null;
+					});
+				} else {
+					var optionsJson = this.getAttribute('data-options') || '{}';
+					var options = JSON.parse(optionsJson);
+					var id = this.getAttribute('id');
+						_self.picker = new $.DtPicker(options);
+						_self.picker.show(function(rs) {
+						endspan.innerText =rs.text;
+						_self.picker.dispose();
+						_self.picker = null;
+					});
+				}			
+			}, false);
+		})(mui,document);
+	</script>
+	<script type="text/javascript">
+		$(function(){
+			//获取当前日期
+			function getDate(type) {
+				const date = new Date();
+				let year = date.getFullYear();
+				let month = date.getMonth() + 1;
+				let day = date.getDate();
+				if (type === 'start') {
+					year = year - 60;
+				} else if (type === 'end') {
+					year = year + 2;
+				}
+				month = month > 9 ? month : '0' + month;;
+				day = day > 9 ? day : '0' + day;
+				return `${year}-${month}-${day}`;
+			}
+			//设置日期前一个星期
+			function fun_date(aa){
+				var date1 = new Date(),
+				time1=date1.getFullYear()+"-"+(date1.getMonth()+1)+"-"+date1.getDate();//time1表示当前时间
+				var date2 = new Date(date1);
+				date2.setDate(date1.getDate()+aa);
+				let month = date2.getMonth() + 1;
+				let day = date2.getDate();
+				month = month > 9 ? month : '0' + month;;
+				day = day > 9 ? day : '0' + day;
+				var time2 = date2.getFullYear()+"-"+month+"-"+day;
+				return time2;
+			}
+			$(".endspan").text(getDate())
+			$(".startspan").text(fun_date(-7))
+		})
+	</script>
+</html>
+<style>
+.NoType{display: none!important;}
+input::-webkit-input-placeholder{
+	color: black;
+	font-size: 1rem;
+}
+.mui-control-content {
+	background-color: white;
+	min-height: 215px;
+}
+.mui-control-content .mui-loading {
+	margin-top: 50px;
+}
+.mui-content{
+	height: calc(100vh);
+}
+.mui-slider{
+	height: calc(100vh - 44px);
+	background: white;
+}
+.mui-slider-group{
+	height: calc(100vh - 88px);
+}
+.HDActive{
+	display: none;
+}
+.Summary-right{display: flex;align-items: center;}
+.Summary-lefttops{margin-bottom:10px;}
+.Summary{background: white;padding: 25px;display: flex;justify-content: space-between;}
+.circle{
+	width:75px;
+	height:75px;
+	border-radius: 50%;
+	border: 1px solid #ccc;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+.Summary-bom{
+	height: 300px;
+	background: white;
+	padding: 25px;
+}
+.itemtwobtn{
+	display: flex;
+	justify-content: space-between;
+	margin-bottom: 20px;
+}
+.itemtwobtn button{
+	width: 50%;
+	margin-top: 20px;
+}
+.Noactive{
+	display: none;
+}
+.select-company-left{
+	text-align: center;
+	width: 90%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	/* background: -webkit-linear-gradient(linear,top bottom,rgb(253,253,253),rgb(206,206,206)); */
+	background:-webkit-linear-gradient(top,rgb(253,253,253),rgb(206,206,206));	
+}
+.select-company-right{
+	width: 10%;
+	background:-webkit-linear-gradient( top,rgb(253,253,253) , rgb(222,222,222));
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	line-height: 30px;
+}
+.select-company-right image{
+	width: 20px;
+	height: 20px;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+}
+.select-company{
+	height: 40px;
+	line-height: 40px;
+	border: 1px solid #CCCCCC;
+	margin-top: 20px;
+	border-radius: 3px;
+	display: flex;justify-content: space-between;
+}
+.select-price{
+	background:-webkit-linear-gradient( top,rgb(182,212,243) , rgb(140,188,235));
+}
+.mui-slider .mui-segmented-control.mui-segmented-control-inverted~.mui-slider-group .mui-slider-item{
+	border: 0;
+}
+</style>

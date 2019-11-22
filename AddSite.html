@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1,maximum-scale=1,user-scalable=no">
+		<meta name="apple-mobile-web-app-capable" content="yes">
+		<meta name="apple-mobile-web-app-status-bar-style" content="black">
+		<title>新增站点</title>
+		<link rel="stylesheet" href="css/mui.min.css">
+		<link rel="stylesheet" href="loading/loadings.css">
+		<script src="js/jquery.js"></script>
+		<script src="js/mui.min.js"></script>
+		<script src="util/crypto-js.js"></script>
+		<script src="util/util.js"></script>
+		<script src="util/md5.js"></script>
+		<script src="util/api.js"></script>
+		<script src="loading/loadings.js"></script>
+		<style type="text/css">
+			.site{
+				margin-top: 60px;
+			}
+		</style>
+	</head>
+	<body style="background: white;">
+		<header class="mui-bar mui-bar-nav">
+			<span class=" mui-icon  mui-pull-left" onclick="history.back(-1)">
+				<img src="img/left.png" style="width: 25px;height: 25px;">
+			</span>
+			<h1 class="mui-title">新增站点</h1>
+		</header>
+		<div class="site">
+			<div id="" style="display: flex;flex-direction: row;align-items: center;border-bottom: 1px solid rgb(240,240,240);">
+				<img src="img/station.png" style="width: 20px;height: 20px;margin-left: 10px;">
+				<input class="input" type="text" placeholder="请输入站点名称" style="border: 0;margin-bottom: 0;">
+			</div>
+			<div class="mui-content-padded">
+			    <button class="mui-btn mui-btn-block mui-btn-danger border-radius" onclick="AddSite()" style="height: 40px;line-height:.8rem;margin-top: 40px;border-radius: 20px;background: #f0ad4e;border: 0;">确 定</button>
+			</div>
+		</div>
+	</body>
+	<script type="text/javascript">
+		let UserInfo=JSON.parse(localStorage.getItem('UserInfo'))
+		var SiteName=document.getElementsByClassName('input')
+		console.log(JSON.parse(UserInfo))
+		function AddSite(){
+			var Flag=FlagToken()
+			if(Flag){
+				if(SiteName[0].value==''||SiteName[0].value==null){
+					mui.toast('站点名称不能为空',{
+						duration:1000
+					});
+					return
+				}
+				mui.showLoading("添加中...","div");
+				var json={
+					method:'add',
+					sitename:SiteName[0].value,
+					merchantid:JSON.parse(UserInfo).PM0003_APP_STORE_ID,
+					createuser:JSON.parse(UserInfo).PM0003_PHONE
+				}
+				console.log(json)
+				console.log(JSON.parse(UserInfo).PM0003_TOKEN)
+				var AesJson=encodeURIComponent(encrypt(encodeURIComponent(JSON.stringify(json)),JSON.parse(UserInfo).PM0003_TOKEN))
+				console.log(AesJson)
+				$.ajax(`${SiteInfoMs}?params=${AesJson}&smsuserid=${JSON.parse(UserInfo).PM0003_ID}`,{
+					data:{},
+					dataType:'json',
+					type:'POST',
+					timeout:10000,
+					success:function(response){
+						console.log(response)
+						if(response.MESSAGE=='新增站点成功'&&parseInt(response.RESULT)==1){
+							setTimeout(function(){
+								mui.hideLoading()
+								SiteName[0].value=''
+								mui.toast(response.MESSAGE,{
+									duration:1000
+								});
+							},1000)
+						}
+						else if(response.MESSAGE=='站点已存在'&&parseInt(response.RESULT)==1){
+							setTimeout(function(){
+								mui.hideLoading()
+								SiteName[0].value=''
+								mui.toast(response.MESSAGE,{
+									duration:1000
+								});
+							},1000)
+						}
+					},
+					error:function(xhr,type,errorThrown){
+						console.log(xhr)
+					}
+				});
+			}
+		}
+	</script>
+</html>

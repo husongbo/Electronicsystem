@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>发券明细列表</title>
+		<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+		<!-- <meta name="apple-mobile-web-app-capable" content="yes">
+		<meta name="apple-mobile-web-app-status-bar-style" content="black"> -->
+		<!-- 最新版本的 Bootstrap 核心 CSS 文件 -->
+		<link rel="stylesheet" href="css/mui.min.css">
+		<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@3.3.7/dist/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+		<link rel="stylesheet" href="loading/loadings.css">
+		<link rel="stylesheet" type="text/css" href="css/mui.picker.min.css" />
+		<link href="css/mui.picker.css" rel="stylesheet" />
+		<link href="css/mui.poppicker.css" rel="stylesheet" />
+		<script src="js/jquery.js"></script>
+		<script src='https://cdn.bootcss.com/Chart.js/2.7.3/Chart.js'></script>
+		<script src="js/mui.min.js"></script>
+		<script src="loading/loadings.js"></script>
+		<script src="js/mui.picker.min.js"></script>
+		<script src="js/mui.picker.js"></script>
+		<script src="js/mui.poppicker.js"></script>
+		<script src="https://res.wx.qq.com/open/js/jweixin-1.0.0.js"></script>
+		<script src="util/crypto-js.js"></script>
+		<script src="util/util.js"></script>
+		<script src="util/md5.js"></script>
+		<script src="util/api.js"></script>
+		<script src="jsbin/jquery.min.js"></script>
+		<script src="jsbin/echarts.common.min.js"></script>
+		<script src="js/vue.js"></script>
+		<style type="text/css">
+			.table-responsive{
+				border: 0;
+			}
+			tbody tr:active{
+				background: rgb(240,240,240);
+			}
+			.Noactive{
+				background: #C8C7CC;
+			}
+			tr{
+				border-bottom: 1px solid #CCCCCC;
+				height: 40px!important;
+			}
+			.table>tbody>tr>td, .table>tbody>tr>th, .table>tfoot>tr>td, .table>tfoot>tr>th, .table>thead>tr>td, .table>thead>tr>th{
+				border-top: 0;
+			}
+			.table-responsive{height: calc(100vh - 44px - 100px);overflow-y: scroll;}
+			.mui-popup-input input{border-radius: 5px;height: 30px;}
+		</style>
+		
+	</head>
+	<body>
+		<div  id="List">
+			<header class="mui-bar mui-bar-nav">
+				<span class=" mui-icon  mui-pull-left" onclick='history.back(-1)'>
+					<img src="img/left.png" style="width: 25px;height: 25px;">
+				</span>
+				<h1 class="mui-title">发券明细列表</h1>
+			</header>
+		<div class="table-responsive" style="margin-top: 60px;">	
+			<div  style="max-height:45vh;overflow-y: scroll;">
+				<div style="display: flex;justify-content: space-between;padding: 0 15px;padding-bottom: 10px;border-bottom: 1px solid #ccc;">
+					<div style="width: 40%;">用户名</div>
+					<div style="width: 60%;">手机号</div>
+				</div>
+				<div v-for="(item,index) in QuanJSon" :key="index"  style="display: flex;justify-content: space-between;padding: 0 15px;border-bottom: 1px solid #ccc;align-items: center;height: 40px;">
+					<div style="width: 40%;">{{item.用户姓名}}</div>
+					<div style="width: 60%;">{{item.用户电话}}</div>
+				</div>
+			</div>
+			<div style="padding-left: 15px;margin-top: 15px;">总条数:{{QuanJSon.length}}条</div>
+			<div style="padding: 0 20px;">
+				<div class="select-company" id='showCompany' rel="null" style="margin-top: 40px;">
+					<div class="select-company-left">
+						<span id="company">请选择活动</span>
+						<input type="hidden" name="" id="CompanyId" value="" />
+					</div>
+					<div class="select-company-right">
+						<img src="img/san.png" style="width: 11px;height: 11px;">
+					</div>
+				</div>
+				<div class="select-company" id="showCompanyPrice" style="margin-top: 40px;">
+					<div class="select-company-left">
+						<span id="companyprice">请选择金额</span>
+					</div>
+					<div class="select-company-right select-price">
+						<img src="img/san.png" style="width: 11px;height: 11px;">
+					</div>
+				</div>
+			</div>
+		</div>
+		
+		<button @click="GoQuan" id="promptBtn" type="button" style="height: 40px;line-height: 40px;padding: 0;width: 70%;position: absolute;bottom:10px;left: 15%;" class="mui-btn mui-btn-warning mui-btn-block">发券</button>
+	</div>
+	</body>
+	<!-- <script src="js/jquery.js"></script>
+	<script src="js/mui.min.js"></script>
+	<script src="loading/loadings.js"></script> -->
+	<script type="text/javascript">
+		$(function(){
+			mui.showLoading("正在加载..","div");
+			setTimeout(()=>{
+				mui.hideLoading()
+			},500)
+		})
+	</script>
+	
+	<script type="text/javascript">
+		new Vue({
+			el: '#List',
+			data: {
+				QuanJSon:'',
+				showas:false,
+				List:[],
+				CoponList:[],
+				UserInfo:'',
+				QuanLen:0,
+				Lens:0,
+			},
+			mounted(){
+				mui.showLoading("正在加载..","div");
+				setTimeout(()=>{
+					mui.hideLoading()
+				},500)
+			},
+			created(){
+				this.UserInfo=JSON.parse(JSON.parse(localStorage.getItem('UserInfo')))
+				var _this=this
+				this.QuanJSon=JSON.parse(localStorage.getItem('Quanlist'))
+				this.QuanLen=this.QuanJSon.length
+				console.log(this.QuanJSon)
+				
+				// var flag=this.FlagToken()
+				// if(flag){
+
+				// }
+			},
+			methods:{
+				//检查备付金
+				Reserve(url){
+					console.log(url)
+					var Flag=false
+					$.ajax(url,{
+						data:{},
+						dataType:'json',//服务器返回json格式数据
+						type:'POST',//HTTP请求类型
+						async:false,
+						timeout:1000000000,//超时时间设置为10秒；
+						success:function(response){
+							console.log(response)
+							if(response.success=='false'||response.success==false){
+								Flag=false
+							}
+							else{
+								Flag=true
+							}	
+						},
+						error:function(xhr,type,errorThrown){
+							console.log(xhr)
+						}
+					});
+					return Flag
+				},
+				GoQuan(){
+					var _this=this
+					var Price=document.getElementById('companyprice')
+					var ComId=document.getElementById('CompanyId')
+					console.log($(Price)[0].innerText)
+					if($(ComId)[0].innerText=='请选择活动'||$(Price)[0].innerText=='请选择金额'){
+						mui.toast('请选择活动和金额')
+						return
+					}
+					var flag=this.FlagToken()
+					if(flag){
+						var urldata=`${CheckReserver}?merchantid=${this.UserInfo.PM0003_APP_STORE_ID}&promoreid=${$(ComId)[0].value}&samount=${parseInt($(Price)[0].innerText).toString()}`
+						var ReserveFlag=this.Reserve(urldata)
+						if(ReserveFlag){
+							_this.open(_this.Lens)
+							 for(var i=0;i<_this.QuanJSon.length;i++){
+									_this.ForData(_this.QuanJSon[i])
+							 }
+						}
+						else{
+							setTimeout(function(){
+								mui.hideLoading()
+								mui.toast("备付金不足",{
+									duration:1000
+								});
+							},1000)
+						}
+					}
+				},
+				ForData(row){
+					var Price=document.getElementById('companyprice')
+					var ComId=document.getElementById('CompanyId')
+					var _this=this
+					var json={
+						merchantid:_this.UserInfo.PM0003_APP_STORE_ID,
+						amount:(parseFloat($(Price)[0].innerText)*100).toString(),
+						isuser:_this.UserInfo.PM0003_PHONE,
+						recipient:row.用户电话,
+						promoreid:$(ComId)[0].value,
+						recipientname:row.用户姓名,
+						siteid:_this.UserInfo.PM0003_SITE_ID
+					}
+					console.log(json)
+					console.log(_this.UserInfo.PM0003_TOKEN)
+					var AesJson=encodeURIComponent(encrypt(encodeURIComponent(JSON.stringify(json)),_this.UserInfo.PM0003_TOKEN))
+					var falg=true
+					if(falg){
+						falg=false
+						$.ajax(`${SaleCouponCode}?params=${AesJson}&smsuserid=${_this.UserInfo.PM0003_ID}`,{
+							data:{},
+							dataType:'json',//服务器返回json格式数据
+							type:'POST',//HTTP请求类型
+							timeout:100000000000,//超时时间设置为10秒；
+							async:true,
+							success:function(response){
+								console.log(response)
+								if(response.success=='false'){
+									return
+									setTimeout(function(){
+										mui.hideLoading()
+										mui.toast(response.result_message,{
+											duration:1000
+										});
+									},1000)
+								}
+								else{
+									falg=true
+									_this.Lens++
+									_this.open(_this.Lens)
+								}
+								if(_this.Lens==_this.QuanJSon.length){
+									mui.hideLoading()
+									_this.Lens=0
+									mui.toast("发券成功",{
+										duration:1000
+									});
+								}	
+							},
+							error:function(xhr,type,errorThrown){
+								console.log(xhr)
+							}
+						});		
+					}
+					
+				},
+				open(val){
+					mui.showLoading(`共${this.QuanJSon.length}/${val}条，请稍后...`,"div");
+				},
+				FlagToken(){
+					var UserInfo=JSON.parse(JSON.parse(localStorage.getItem('UserInfo')))
+					var UserPsd=md5(JSON.parse(localStorage.getItem('UserLoginInfo')).password).slice(0,16).toUpperCase()
+					var UserToken={
+						method:'loginstate',
+						userid:UserInfo.PM0003_ID,
+						token:UserInfo.PM0003_TOKEN
+					}
+					console.log(UserToken)
+					console.log(UserPsd)
+					var Flag=false
+					var TokenAesJson=encodeURIComponent(encrypt(JSON.stringify(UserToken),UserPsd))
+					$.ajax(`${GetLoginState}?params=${TokenAesJson}&smsusername=${UserInfo.PM0003_PHONE}`,{
+						data:{},
+						dataType:'json',//服务器返回json格式数据
+						type:'POST',//HTTP请求类型
+						async:false,  //同步方式
+						timeout:10000,//超时时间设置为10秒；
+						success:function(response){
+							console.log(response)
+							if(parseInt(response.LOGINSTATUS)==2&&parseInt(response.RESULT)==0){
+								mui.toast("账号已在另一方登录，已下线",{
+									duration:500
+								});
+								localStorage.removeItem('UserInfo')
+								localStorage.removeItem('UserLoginInfo')
+								setTimeout(function(){
+									window.location.href='index.html'
+								},600)
+								Flag=false
+							}
+							else{
+								Flag=true
+							}
+						},
+						error:function(xhr,type,errorThrown){
+							console.log(xhr)
+						}
+					});
+					return Flag
+				}
+			}
+		})
+	</script>
+	<script type="text/javascript">
+		(function($,doc) {
+			$('.mui-scroll-wrapper').scroll({
+				indicators: true //是否显示滚动条
+			});
+			//用户信息
+			let UserInfo=JSON.parse(JSON.parse(localStorage.getItem('UserInfo')))
+			//选择活动
+			var showUserPickerButton = doc.getElementById('showCompany');
+			var userResult = doc.getElementById('company');
+			var userPicker = new $.PopPicker();
+			var userPickers = new $.PopPicker();
+			var Companylist=[]
+			var Companylists=[
+				{
+					text:'全部',
+					value:''
+				}
+			]
+			var HdFlag=true
+			var HdAllFlag=true
+			if(UserInfo==null){
+				mui.toast(Message,{
+					duration:1000
+				});
+				Companylist=[]
+				Companylists=[]
+			}
+			else{
+				var UserCompanyID=UserInfo.PM0003_APP_STORE_ID
+				var json={
+					method:'validlist',
+					merchantid:UserCompanyID,
+					siteid:UserInfo.SITE_ID,
+					roleid:UserInfo.PM0003_ROLE_ID	
+				}
+				var Toation=UserInfo.PM0003_TOKEN
+				var AesJson=encodeURIComponent(encrypt(JSON.stringify(json),Toation))
+				//活动列表
+				$.ajax(`${PromoteMs}?params=${AesJson}&smsuserid=${UserInfo.PM0003_ID}`,{
+					data:{},
+					dataType:'json',//服务器返回json格式数据
+					type:'POST',//HTTP请求类型
+					timeout:10000,//超时时间设置为10秒；
+					async:false,
+					success:function(response){
+						console.log(response)
+						if(response.DATA==undefined){
+							HdFlag=false
+							return
+						}
+						console.log(JSON.parse(response.DATA))
+						JSON.parse(response.DATA).forEach(function(item){
+							item.text=item.PM0001_ANAME
+							Companylist.push(item)
+						})
+						userPicker.setData(Companylist);
+					},
+					error:function(xhr,type,errorThrown){console.log(xhr)}
+				});
+				var jsonall={
+					method:'list',
+					merchantid:UserCompanyID,
+					siteid:UserInfo.SITE_ID,
+					roleid:UserInfo.PM0003_ROLE_ID	
+				}
+				console.log(jsonall)
+				var Toation=UserInfo.PM0003_TOKEN
+				var AesJson=encodeURIComponent(encrypt(JSON.stringify(jsonall),Toation))
+				$.ajax(`${PromoteMs}?params=${AesJson}&smsuserid=${UserInfo.PM0003_ID}`,{
+					data:{},
+					dataType:'json',//服务器返回json格式数据
+					type:'POST',//HTTP请求类型
+					timeout:10000,//超时时间设置为10秒；
+					async:false,
+					success:function(response){
+						console.log(response)
+						if(response.DATA==undefined){
+							HdAllFlag=false
+							return
+						}
+						console.log(JSON.parse(response.DATA))
+						JSON.parse(response.DATA).forEach(function(item){
+							item.text=item.PM0001_ANAME
+							Companylists.push(item)
+						})
+						userPickers.setData(Companylists);
+					},
+					error:function(xhr,type,errorThrown){console.log(xhr)}
+				});
+			}
+			var PriceList=[]
+			//选择金额
+			var showUserPickerButtons = doc.getElementById('showCompanyPrice');
+			var ComId=doc.getElementById('CompanyId')
+			var userResults = doc.getElementById('companyprice');
+			if(UserInfo!=null){
+				if(HdFlag){
+					//发券活动列表选择
+					showUserPickerButton.addEventListener('tap', function(event) {
+						userPicker.show(function(items) {
+							PriceList=[]
+							console.log($(this))
+							userResults.innerText='请选择金额'
+							console.log(items)
+							PriceList.push({
+								text:items[0].PM0001_SAMOUNT
+							})
+							console.log(showUserPickerButton.childNodes[1].childNodes[1])
+							$(userResult)[0].innerText=items[0].text
+							$(ComId)[0].value=items[0].PM0001_NO
+						});
+					}, false);
+				}
+			}
+			else{
+				mui.toast(Message,{
+					duration:1000
+				});
+			}
+			//活动金额选择
+			showUserPickerButtons.addEventListener('tap', function(event) {
+				if(PriceList.length!=0){
+				var userPicker = new $.PopPicker();
+				userPicker.setData(PriceList);
+				userPicker.show(function(items) {
+					userResults.innerText=items[0].text
+					console.log(items)
+				});
+				}
+				else{
+					mui.toast("请先选择活动",{
+						duration:1000
+					});
+				}
+			}, false);
+		})(mui,document);
+	</script>
+</html>
+<style>
+	.select-company-left{
+		text-align: center;
+		width: 90%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		/* background: -webkit-linear-gradient(linear,top bottom,rgb(253,253,253),rgb(206,206,206)); */
+		background:-webkit-linear-gradient(top,rgb(253,253,253),rgb(206,206,206));	
+	}
+	.el-upload{display: block!important;}
+	.el-upload-dragger{width: 100%!important;}
+	.select-company-right{
+		width: 10%;
+		background:-webkit-linear-gradient( top,rgb(253,253,253) , rgb(222,222,222));
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		line-height: 30px;
+	}
+	.select-company-right image{
+		width: 20px;
+		height: 20px;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+	}
+	.select-company{
+		height: 40px;
+		line-height: 40px;
+		border: 1px solid #CCCCCC;
+		margin-top: 20px;
+		border-radius: 3px;
+		display: flex;justify-content: space-between;
+	}
+	.select-price{
+		background:-webkit-linear-gradient( top,rgb(182,212,243) , rgb(140,188,235));
+	}
+	.mui-slider .mui-segmented-control.mui-segmented-control-inverted~.mui-slider-group .mui-slider-item{
+		border: 0;
+	}
+</style>

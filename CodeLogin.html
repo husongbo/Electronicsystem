@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html class="ui-page-login">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no"/>
+    <meta name="apple-mobile-web-app-capable" content="yes"/>
+    <meta name="apple-mobile-web-app-status-bar-style" content="black"/>
+    <title>验证码登录</title>
+    <link href="css/mui.min.css" rel="stylesheet"/>
+    <link rel="stylesheet" href="loading/loadings.css">
+    <script src="js/jquery.js"></script>
+    <script src="js/vue.js"></script>
+    <script src="js/mui.min.js"></script>
+    <script src="util/crypto-js.js"></script>
+    <script src="util/util.js"></script>
+    <script src="util/md5.js"></script>
+    <script src="util/api.js"></script>
+    <script src="loading/loadings.js"></script>
+    <style>
+        .hqyzm{
+            position: absolute;
+            right: 10px;
+            top: 4px;
+        	width: 90px;
+            background-color: #f0ad4e;
+            color: #fff;
+            border-radius: 30px;
+            border: none;
+        }
+		.mui-content{
+			background: white;
+			margin-top: 20px;
+		}
+		.mui-input-group:after,.mui-input-group:before{
+			height: 0;
+		}
+    </style>
+</head>
+<body style="background: white;">
+    <header class="mui-bar mui-bar-nav">
+        <span class="mui-action-back mui-icon  mui-pull-left" onclick="javascript:history.back(-1);">
+        	<img src="img/left.png" style="width: 25px;height: 25px;">
+        </span>
+        <h1 class="mui-title">验证码登录</h1>
+    </header>
+    <div class="mui-content">
+        <form class="mui-input-group">
+            <div class="mui-input-row">
+                <label>手机号</label>
+                <input type="tel" id="phone" class="mui-input-clear mui-input" placeholder="请输入手机号码"/>
+            </div>
+            <div class="mui-input-row">
+                <label>验证码</label>
+                <input type="text" class="mui-input InputCode" placeholder="验证码"/>
+                <button type="button" class="hqyzm" onclick="GetCode()">获取验证码</button>
+            </div>
+        </form>
+        <div class="mui-content-padded">
+            <button onclick="RegUser()" class="mui-btn mui-btn-block mui-btn-danger border-radius" style="height: 40px;line-height:.8rem;margin-top: 40px;border-radius: 20px;background: #f0ad4e;border: 0;">提 交</button>
+        </div>
+    </div>
+</body>
+<script type="text/javascript">
+	let UserInfo=JSON.parse(localStorage.getItem('UserInfo'))
+	var GetCodes=document.getElementsByClassName('hqyzm')//验证码按钮
+	var InputCodes=document.getElementsByClassName('InputCode')//验证码
+	var UserPhone=document.getElementById('phone')//手机号
+	var YZPhone=/^1[3456789]\d{9}$/
+	var CodeFlag=false//判断是否发送验证码
+	const Len=60
+	var Inter=''
+	//发送验证码
+	function GetCode(){
+		//手机格式
+		if(!YZPhone.test($(UserPhone)[0].value)){
+			mui.toast('手机号格式不正确，请重新输入',{
+				duration:1000
+			});
+			$(UserPhone)[0].value=''
+			return
+		}
+		if(GetCodes[0].innerText=='获取验证码'){
+			var json={
+				phone:$(UserPhone)[0].value
+			}
+			$.ajax(`${DYSendSms}?phone=${json.phone}`,{
+				data:{},
+				dataType:'json',//服务器返回json格式数据
+				type:'POST',//HTTP请求类型
+				timeout:10000,//超时时间设置为10秒；
+				success:function(response){
+					console.log(response)
+					CodeFlag=true
+					GetCodes[0].innerText=Len
+					Inter=setInterval(function(){
+						GetCodes[0].innerText=parseInt(GetCodes[0].innerText)-1
+						if(parseInt(GetCodes[0].innerText)==0){
+							clearInterval(Inter)
+							GetCodes[0].innerText='获取验证码'
+							CodeFlag=false
+						}
+					},1000)
+				},
+				error:function(xhr,type,errorThrown){
+					console.log(xhr)
+				}
+			});				
+		}
+		else{
+			return
+		}
+	}
+	//登录
+	function RegUser() {
+		if(!YZPhone.test($(UserPhone)[0].value)){
+			mui.toast('手机号格式不正确，请重新输入',{
+				duration:1000
+			});
+			$(UserPhone)[0].value=''
+			return
+		}
+		if(!CodeFlag){
+			mui.toast('请先获取验证码',{
+				duration:1000
+			});
+			return
+		}
+		mui.showLoading("添加中...","div");
+		var timestamps = (Date.parse(new Date()).toString()).slice(0,10)
+		var CodeJson={
+			username:$(UserPhone)[0].value,
+			code:$(InputCodes)[0].value,
+			timestamp:timestamps
+		}
+		$.ajax(`${LoginFromCode}?username=${CodeJson.username}&code=${CodeJson.code}&timestamp=${CodeJson.timestamp}`,{
+			data:{},
+			dataType:'json',//服务器返回json格式数据
+			type:'POST',//HTTP请求类型
+			timeout:10000,//超时时间设置为10秒；
+			success:function(response){
+				console.log(response)
+				if(response.MESSAGE=='验证码错误'&&parseInt(response.RESULT)==1){
+					setTimeout(function(){
+						mui.hideLoading()
+						mui.toast(response.MESSAGE,{
+							duration:1000
+						});
+						$(InputCodes)[0].value=''
+					},1000)	
+				}
+				else{
+					localStorage.setItem('UserInfo',JSON.stringify(response.USER))
+					setTimeout(function(){
+						mui.hideLoading()
+						mui.toast('登录成功，请稍后...',{
+							duration:500
+						});
+						setTimeout(function(){
+							window.location.href='index.html'
+						})
+					},600)
+				}
+			},
+				error:function(xhr,type,errorThrown){
+					console.log(xhr)
+			}
+		});
+	}	
+</script>
+</html>

@@ -1,0 +1,1496 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>电子券发放系统</title>
+		<meta name="viewport" content="width=device-width, initial-scale=1,maximum-scale=1,user-scalable=no">
+		<meta name="apple-mobile-web-app-capable" content="yes">
+		<meta name="apple-mobile-web-app-status-bar-style" content="black">
+		<!--标准mui.css-->
+		<link rel="stylesheet" href="css/mui.min.css">
+		<link rel="stylesheet" href="loading/loadings.css">
+		<link rel="stylesheet" type="text/css" href="css/mui.picker.min.css" />
+		<link href="css/mui.picker.css" rel="stylesheet" />
+		<link href="css/mui.poppicker.css" rel="stylesheet" />
+		<script src="js/jquery.js"></script>
+		<script src='https://cdn.bootcss.com/Chart.js/2.7.3/Chart.js'></script>
+		<script src="js/mui.min.js"></script>
+		<script src="loading/loadings.js"></script>
+		<script src="js/mui.picker.min.js"></script>
+		<script src="js/mui.picker.js"></script>
+		<script src="js/mui.poppicker.js"></script>
+		<script src="https://res.wx.qq.com/open/js/jweixin-1.0.0.js"></script>
+		<script src="util/crypto-js.js"></script>
+		<script src="util/util.js"></script>
+		<script src="util/md5.js"></script>
+		<script src="util/api.js"></script>
+		<script src="jsbin/jquery.min.js"></script>
+		<script src="jsbin/echarts.common.min.js"></script>
+		<script src="js/vue.js"></script>
+	</head>
+	<body>
+		<script type="text/javascript">
+			mui.showLoading("请稍后...","div");
+			setTimeout(function(){
+				mui.hideLoading()
+			},1000)
+			// localStorage.removeItem('UserInfo')
+			var UserInfo=JSON.parse(JSON.parse(localStorage.getItem('UserInfo')))
+			console.log(UserInfo)
+			// Nums
+			if(UserInfo!=null){
+				// if(parseInt(UserInfo.PM0003_USER_TYPE)==2){
+				// 	var select=document.getElementsByClassName('selectNum')
+				// 	console.log(select)
+				// }	
+			}
+			//个人中心
+			function Goto(){
+				if(UserInfo==null){
+					window.location.href='login.html'
+				}
+				else{
+					
+					window.location.href='mycenter.html'
+				}
+			}
+			//扫码
+			function GetCode(){
+				if(UserInfo==null){
+					mui.toast(Message,{
+						duration:1000
+					});
+					return
+				}
+				var hrefs=window.location.href
+				var datas=`params={method:"GetWeInfo"}`
+				$.ajax({
+					type: "post",
+					url:`http://sms.youxinbao.com.cn/App/Common/CSharp/app/user/UserInfo.ashx?params={method:"GetWeInfo",url:"${hrefs}"}`,
+					async: true,
+					success: function (res) {
+						//alert(encodeURIComponent(location.href.split('#')[0]));
+						var res=JSON.parse(res)
+						console.log(res)
+						wx.config({
+							 debug: true, // 开启调试模式   
+							 appId:res.appId,
+							 timestamp:res.timpstamp,
+							 nonceStr:res.noncestr,
+							 signature:res.signature,
+							 jsApiList: [
+										   'scanQRCode'// 微信扫一扫接口
+										] // 必填，需要使用的JS接口列表，所有JS接口列表见附录2 
+						 });
+						wx.ready(function() {
+							wx.scanQRCode({
+								 needResult : 1, // 默认为0，扫描结果由微信处理，1则直接返回扫描结果，
+								 scanType : ["qrCode"], // 可以指定扫二维码还是一维码，默认二者都有
+								 success : function(res) {
+									 var result = res.resultStr;
+									  console.log(res)// 当needResult 为 1 时，扫码返回的结果
+								 }							
+							});
+						});
+					},
+					error:function(jqXHR){
+			//           	alert(JSON.stringfy(jqXHR))
+			       	}
+				});
+			}
+			//获取电子券信息
+			function SelectCode(){
+				if(UserInfo==null){
+					mui.toast(Message,{
+						duration:1000
+					});
+					return
+				}
+				var Flag=FlagToken()//判断登录状态
+				if(Flag){
+					mui.showLoading("请稍后...","div");
+					setTimeout(function(){
+						mui.hideLoading()
+					},500)
+					var phone=document.getElementsByClassName('UserPhone')
+					var startdate=$(".endspan").text()//开始日期
+					var enddate=$(".startspan").text()//结束日期
+					var Site=document.getElementById('site')//站点
+					var States=document.getElementById('states')
+					var hdchekceds=document.getElementById('Hdcheck')
+					var sitevalue=Site.options[Site.selectedIndex].value//空为默认
+					var statesvalue=States.options[States.selectedIndex].value//空为默认
+					var hdchekcedsvalue=hdchekceds.options[hdchekceds.selectedIndex].value
+					var flag=''
+					if(statesvalue==''||statesvalue==null){
+						flag=''
+					}
+					else if(statesvalue=='ok'){
+						flag='1'
+					}
+					else{
+						flag='-1'
+					}
+					var json={
+						method:'list',
+						userid:UserInfo.PM0003_ID,
+						promoteid:hdchekcedsvalue,
+						siteid:sitevalue,
+						begintime:enddate,
+						endtime:startdate,
+						state:flag
+					}
+					console.log(json)
+					var AesJson=encodeURIComponent(encrypt(encodeURIComponent(JSON.stringify(json)),UserInfo.PM0003_TOKEN))
+					$.ajax(`${CouponInfoMs}?params=${AesJson}&smsuserid=${UserInfo.PM0003_ID}`,{
+						data:{},
+						dataType:'json',//服务器返回json格式数据
+						type:'POST',//HTTP请求类型
+						timeout:10000,//超时时间设置为10秒；
+						success:function(response){
+							console.log(response)
+							if(response.DATA==undefined){
+								mui.toast("暂无电子券数据信息",{
+									duration:1000
+								});
+								return
+							}
+							else{
+								console.log(JSON.parse(response.DATA))
+								if($(phone)[0].value.trim()==''||$(phone)[0].value.trim()==null){
+									localStorage.setItem('CouponJson',JSON.stringify(json))
+									window.location.href=`FlowCode.html?phone=null`
+									return
+								}
+								var arr=[]
+								JSON.parse(response.DATA).forEach((item)=>{
+									if(item.PM0002_RECIPIENT.trim()==$(phone)[0].value.trim()){
+										arr.push(item)
+									}
+								})
+								if(arr.length!=0){
+									localStorage.setItem('CouponJson',JSON.stringify(json))
+									window.location.href=`FlowCode.html?phone=${$(phone)[0].value.trim()}`
+								}
+								else{
+									mui.toast("暂无电子券数据信息",{
+										duration:1000
+									});
+									return
+								}	
+							}	
+						},
+						error:function(xhr,type,errorThrown){
+							console.log(xhr)
+						}
+					});
+				}
+			}
+			
+			var patrn = /^[1][3,4,5,6,7,8,9][0-9]{9}$/
+			//发券
+			function GotoQuan(){
+				if(UserInfo==null){
+					mui.toast(Message,{
+						duration:1000
+					});
+					return
+				}
+				var Flag=FlagToken()
+				if(Flag){
+					var PostNum=0
+					var Num=document.getElementsByClassName('Nums')
+					if($(Num)[0]==undefined){
+						PostNum=1
+					}
+					else{
+						PostNum=parseInt($(Num)[0].value)
+					}
+					var phone=document.getElementsByClassName('Phone')
+					var phones=document.getElementsByClassName('Phones')
+					var Names=document.getElementsByClassName('Name')
+					var Actives=document.getElementById('company')
+					var Price=document.getElementById('companyprice')
+					var ComId=document.getElementById('CompanyId')
+					var Flags=FlagNum()
+					if(Flags){
+						var Len=0
+						mui.showLoading("请稍后...","div");
+						var urldata=`${CheckReserver}?merchantid=${UserInfo.PM0003_APP_STORE_ID}&promoreid=${$(ComId)[0].value}&samount=${parseInt($(Price)[0].innerText).toString()}`
+						var ReserveFlag=Reserve(urldata)
+						if(ReserveFlag){
+							var json={
+								merchantid:UserInfo.PM0003_APP_STORE_ID,
+								amount:(parseFloat($(Price)[0].innerText)*100).toString(),
+								isuser:UserInfo.PM0003_PHONE,
+								recipient:$(phones)[0].value,
+								promoreid:$(ComId)[0].value,
+								recipientname:$(Names)[0].value,
+								siteid:UserInfo.PM0003_SITE_ID
+							}
+							console.log(json)
+							console.log(UserInfo.PM0003_TOKEN)
+							var AesJson=encodeURIComponent(encrypt(encodeURIComponent(JSON.stringify(json)),UserInfo.PM0003_TOKEN))
+							for(var i=0;i<PostNum;i++){
+								$.ajax(`${SaleCouponCode}?params=${AesJson}&smsuserid=${UserInfo.PM0003_ID}`,{
+									data:{},
+									dataType:'json',//服务器返回json格式数据
+									type:'POST',//HTTP请求类型
+									timeout:10000,//超时时间设置为10秒；
+									async:false,
+									success:function(response){
+										console.log(response)
+										if(response.success=='false'){
+											setTimeout(function(){
+												mui.hideLoading()
+												mui.toast(response.result_message,{
+													duration:1000
+												});
+												$(phone)[0].value=''
+												$(phones)[0].value=''
+												$(Names)[0].value=''
+											},1000)
+										}
+										else{
+											Len++
+										}
+									},
+									error:function(xhr,type,errorThrown){
+										console.log(xhr)
+									}
+								});
+							}
+							if(Len!=0){
+								mui.hideLoading()
+								mui.toast("发券成功",{
+									duration:1000
+								});
+								$(phone)[0].value=''
+								$(phones)[0].value=''
+								$(Names)[0].value=''
+							}	
+						}
+						else{
+							setTimeout(function(){
+								mui.hideLoading()
+								mui.toast("备付金不足",{
+									duration:1000
+								});
+								$(phone)[0].value=''
+								$(phones)[0].value=''
+								$(Names)[0].value=''
+							},1000)
+						}
+					}	
+				}				
+			}
+			//检查备付金
+			function Reserve(url){
+				console.log(url)
+				var Flag=false
+				$.ajax(url,{
+					data:{},
+					dataType:'json',//服务器返回json格式数据
+					type:'POST',//HTTP请求类型
+					async:false,
+					timeout:10000,//超时时间设置为10秒；
+					success:function(response){
+						console.log(response)
+						if(response.success=='false'||response.success==false){
+							Flag=false
+						}
+						else{
+							Flag=true
+						}	
+					},
+					error:function(xhr,type,errorThrown){
+						console.log(xhr)
+					}
+				});
+				return Flag
+			}
+			//检查格式
+			function FlagNum(){
+				var phone=document.getElementsByClassName('Phone')
+				var phones=document.getElementsByClassName('Phones')
+				var Names=document.getElementsByClassName('Name')
+				var Actives=document.getElementById('company')
+				var Price=document.getElementById('companyprice')
+				var ComId=document.getElementById('CompanyId')
+				if($(Names)[0].value==''){
+					mui.toast('请输入用户名',{
+						duration:1000
+					});
+					return false
+				}
+				if(!patrn.test($(phone)[0].value)){
+					mui.toast('请输入正确的手机号码',{
+						duration:1000
+					});
+					return false
+				}
+				else if($(phone)[0].value!=$(phones)[0].value){
+					mui.toast('手机号不一致',{
+						duration:1000
+					});
+					$(phones)[0].value=''
+					return false
+				}
+				else if($(ComId)[0].value==''){
+					mui.toast('请选择活动',{
+						duration:1000
+					});
+					return false
+				}
+				else if($(Price)[0].innerText=='请选择金额'){
+					mui.toast('请选择金额',{
+						duration:1000
+					});
+					return false
+				}
+				else{
+					return true
+				}
+			}
+		</script>
+		
+		<header class="mui-bar mui-bar-nav">
+			<span class=" mui-icon  mui-pull-right" onclick='Goto()'>
+				<img src="img/me.png" style="width: 25px;height: 25px;">
+			</span>
+			<h1 class="mui-title">电子券发放系统</h1>
+		</header>	
+		<div class="mui-content app">
+			<div id="slider" class="mui-slider">
+				<div id="sliderSegmentedControl" class="mui-slider-indicator mui-segmented-control mui-segmented-control-inverted">
+					<a class="mui-control-item" href="#item1mobile">
+				汇总
+			</a>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    
+					<a class="mui-control-item" href="#item2mobile">
+				新发券
+			</a>
+					<a class="mui-control-item" href="#item3mobile">
+				明细
+			</a>
+				</div>
+				<div id="sliderProgressBar" class="mui-slider-progress-bar mui-col-xs-4"></div>
+				<div class="mui-slider-group">
+					<div id="item1mobile" class="mui-slider-item mui-control-content mui-active">
+						<div id="scroll1" class="mui-scroll-wrapper">
+							<div class="mui-scroll">
+								<div class="Summary">
+									<div class="Summary-left">
+										<div class="Summary-lefttops">
+											<span style="margin-right: 10upx;">总金额:</span><span class="SumPrice" style="color: red;">￥0.00</span>
+										</div>
+										<div class="Summary-lefttops">
+											<span style="margin-right: 10upx;">冻结金额:</span><span class="DJPrice" style="color: red;">￥0.00</span>
+										</div>
+										<div class="Summary-lefttops">
+											<span style="margin-right: 10upx;">已发金额:</span><span class="YFPrice" style="color: red;">￥0.00</span>
+										</div>
+										<div class="Summary-lefttops">
+											<span style="margin-right: 10upx;">剩余余额:</span><span class="SYPrice" style="color: red;">￥0.00</span>
+										</div>
+									</div>
+									<button id="qxfl" data-index="1" style="display: none;"></button>
+									<div class="Summary-right">
+										 <div id="main" style="width: 130px;height:150px;"></div>
+									</div>
+								</div>
+								<div class="" style="height: 30px;background:rgb(233,233,233);"></div>
+								<div style="display: flex;flex-direction: row;">
+									<div class="Summary-bom" style="padding-top: 0;width: 60%;">
+										<div style="margin: 10px 0;font-size:1.1rem;font-weight: bold;">活动汇总</div>
+										<div class="select-company" id='selectCompany' rel="null" style="margin-top: 0;">
+											<div class="select-company-left">
+												<span id="selcompany">请选择活动</span>
+												<input type="hidden" name="" id="CompanyIdAll" value="" />
+											</div>
+											<div class="select-company-right">
+												<img src="img/san.png" style="width: 11px;height: 11px;">
+											</div>
+										</div>
+										<div class="Summary-left" id="HDbottom">
+											<div class="Summary-lefttops" style="margin-top: 10px;">
+												<span style="margin-right: 5px;">活动总金额:</span><span id="NumPrice" style="color: red;">0.00</span>
+											</div>
+											<div class="Summary-lefttops">
+												<span style="margin-right: 5px;">活动余额:</span><span id="YePrice" style="color: red;">0.00</span>
+											</div>
+											<div class="Summary-lefttops">
+												<span style="margin-right: 5px;">已发手机号:</span><span id="YfPhone" style="color: red;">0个</span>
+											</div>
+											<div class="Summary-lefttops">
+												<span style="margin-right: 5px;">已发券券数:</span><span id="YfQnum" style="color: red;">0条</span>
+											</div>
+											<div class="Summary-lefttops">
+												<span style="margin-right: 5px;">已发放金额:</span><span id="YfPrice" style="color: red;">0.00</span>
+											</div>
+										</div>
+									</div>
+									<div class="Summary-right">
+										 <div id="HDmain" style="width: 130px;height:150px;"></div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+					<div id="item2mobile" class="mui-slider-item mui-control-content">
+						<div id="scroll2" class="mui-scroll-wrapper">
+							<div style="margin: 0 40px;">
+								<div class="itemtwobtn">
+									<button type="button" onclick='GetCode()' style="border-radius: 3px 0 0 3px;border-right: 0;" class="mui-btn mui-btn-warning mui-btn-outlined">
+										二维码扫码
+									</button>
+									<button id="PhonQ" type="button" style="border-radius: 0px 3px 3px 0px;" class="mui-btn mui-btn-warning mui-btn-outlined">
+										手机号发券
+									</button>
+								</div>
+								<div id="Details" style="margin-top: 60px;">
+									用户您好，当前共有二种发券方式:<p>
+									1.单击二维码扫码进行扫码<p>
+									2.点击手机号发券输入手机号等相关信息
+								</div>
+								<div id="PhoneQUan" class="Noactive">
+									<div class="mui-input-row mui-password">
+										<input type="text" class="mui-input-clear Name" placeholder="请输入被发券姓名">
+									</div>
+									<div class="mui-input-row mui-password">
+										<input type="number" class="mui-input-clear Phone" placeholder="请输入手机号">
+									</div>
+									<div class="mui-input-row mui-password">
+										<input type="number" class="mui-input-clear Phones" placeholder="请再次输入手机号">
+									</div>
+									<div class="selectNum" v-if="selectFlag" style="display: flex;justify-content: space-between;">
+										<div style="display: flex;align-items: center;font-size: 1rem;">请选择发券张数:</div>
+										<div id="data1" class="mui-numbox" data-numbox-step='1' data-numbox-min='1' data-numbox-max='10'  style="width: 140px;">
+											<button class="mui-btn mui-numbox-btn-minus" type="button">-</button>
+											<input class="mui-numbox-input Nums" type="number" />
+											<button class="mui-btn mui-numbox-btn-plus" type="button">+</button>
+										</div>
+									</div>
+									
+									<div class="select-company" id='showCompany' rel="null">
+										<div class="select-company-left">
+											<span id="company">请选择活动</span>
+											<input type="hidden" name="" id="CompanyId" value="" />
+										</div>
+										<div class="select-company-right">
+											<img src="img/san.png" style="width: 11px;height: 11px;">
+										</div>
+									</div>
+									<div class="select-company" id="showCompanyPrice">
+										<div class="select-company-left">
+											<span id="companyprice">请选择金额</span>
+										</div>
+										<div class="select-company-right select-price">
+											<img src="img/san.png" style="width: 11px;height: 11px;">
+										</div>
+									</div>
+									<button onclick="GotoQuan()" type="button" style="margin-top: 30px;height: 40px;line-height: 40px;padding: 0;" class="mui-btn mui-btn-warning mui-btn-block">确定</button>
+								</div>
+							</div>
+						</div>
+					</div>
+					<div id="item3mobile" class="mui-slider-item mui-control-content">
+						<div id="scroll3" class="mui-scroll-wrapper">
+							<div style="margin: 0 40px;">
+								<div class="" style="display: flex;justify-content: space-between;">
+									<div class="select-company startDate" style="width: 45%;" data-options='{"type":"date"}'>
+										<div class="select-company-left slects-date" style="width: 80%;">
+											<span class="startspan"></span>
+										</div>
+										<div class="select-company-right" style="width: 20%;">
+											<img src="img/date.png" style="width: 16px;height: 16px;">
+										</div>
+									</div>
+									<div class="select-company endDate" style="width: 45%;" data-options='{"type":"date"}'>
+										<div class="select-company-left slects-date" style="width: 80%;">
+											<span class="endspan"></span>
+										</div>
+										<div class="select-company-right" style="width: 20%;">
+											<img src="img/date.png" style="width: 16px;height: 16px;">
+										</div>
+									</div>
+								</div>
+								<div class="mui-input-row mui-password" style="margin-top: 20px;">
+									<select id="Hdcheck" style="font-size:1rem;border: 1px solid #ccc!important;padding-left: 10px;border-radius: 0;">
+										<option value ="" style="display: none;">请选择活动</option>
+										<option value ="">全部</option>
+										<option v-for="(item,index) in HdList" :value="item.PM0001_NO">{{item.PM0001_ANAME}}</option>
+									</select>
+								</div>
+								<div class="mui-input-row mui-password" style="margin-top: 10px;">
+									<select id="site" style="font-size:1rem;border: 1px solid #ccc!important;padding-left: 10px;border-radius: 0;">
+										<option value ="" style="display: none;">请选择站点</option>
+										<option value ="">全部</option>
+										<option v-for="(item,index) in SiteList" :value="item.PM0006_NO">{{item.PM0006_NAME}}</option>
+									</select>
+								</div>
+								<div class="mui-input-row mui-password" style="margin-top: 10px;">
+									<select id="states" style="font-size:1rem;border: 1px solid #ccc!important;padding-left: 10px;border-radius: 0;">
+										<option value ="" style="display: none;">请选择状态</option>
+										<option value ="">全部</option>
+										<option value="ok">正常</option>
+										<option value="no">撤销</option>
+									</select>
+								</div>
+								<div class="mui-input-row" style="margin-top: 10px;">
+									<input type="number" class="mui-input-clear Phone UserPhone" style="color: black!important;padding-left: 10px;font-size: 1rem;" placeholder="请输入被发放人手机号">
+								</div>
+								<button type="button" onclick="SelectCode()" style="margin-top: 30px;height: 40px;line-height: 40px;padding: 0;" class="mui-btn mui-btn-warning mui-btn-block">查询</button>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		<script type="text/javascript">
+			new Vue({
+				el: '.app',
+				data: {
+					SiteList:[],
+					HdList:[],
+					UtilPrice:0,
+					Months:0,
+					Amonth:0,
+					selectFlag:false,
+				},
+				created(){
+					var _this=this
+					var UserInfo=JSON.parse(localStorage.getItem('UserInfo'))
+					if(UserInfo==null){
+						mui.toast(Message,{
+							duration:1000
+						});
+						return
+					}
+					if(parseInt(JSON.parse(UserInfo).PM0003_USER_TYPE)==2){
+						this.selectFlag=true
+					}
+					var flag=this.FlagToken()
+					if(!flag){
+						return
+					}
+					this.GetHd()//获取活动列表
+					var json={
+						merchantid:JSON.parse(UserInfo).PM0003_APP_STORE_ID
+					}
+					console.log(json)
+					console.log(JSON.parse(UserInfo).PM0003_TOKEN)
+					var AesJson=encodeURIComponent(encrypt(JSON.stringify(json),JSON.parse(UserInfo).PM0003_TOKEN))
+					console.log(AesJson)
+					//获取站点列表
+					$.ajax(`${GetSiteList}?params=${AesJson}&smsuserid=${JSON.parse(UserInfo).PM0003_ID}`,{
+						data:{},
+						dataType:'json',//服务器返回json格式数据
+						type:'POST',//HTTP请求类型
+						timeout:10000,//超时时间设置为10秒；
+						success:function(response){
+							if(response.DATA==undefined){
+								_this.SiteList=[]
+							}
+							else{
+								_this.SiteList=JSON.parse(response.DATA)
+								console.log(_this.SiteList)
+							}	
+						},
+						error:function(xhr,type,errorThrown){
+							console.log(xhr)
+						}
+					});
+				},
+				methods:{
+					//获取活动列表
+					GetHd(){
+						var _this=this
+						var UserInfo=JSON.parse(localStorage.getItem('UserInfo'))
+						var UserCompanyID=JSON.parse(UserInfo).PM0003_APP_STORE_ID
+						var json={
+							method:'list',
+							merchantid:JSON.parse(UserInfo).PM0003_APP_STORE_ID,
+							siteid:JSON.parse(UserInfo).SITE_ID,
+							roleid:JSON.parse(UserInfo).PM0003_ROLE_ID
+						}
+						console.log(json)
+						var Toation=JSON.parse(UserInfo).PM0003_TOKEN
+						// console.log(Toation)
+						var AesJson=encodeURIComponent(encrypt(JSON.stringify(json),Toation))
+						$.ajax(`${PromoteMs}?params=${AesJson}&smsuserid=${JSON.parse(UserInfo).PM0003_ID}`,{
+							data:{},
+							dataType:'json',//服务器返回json格式数据
+							type:'POST',//HTTP请求类型
+							timeout:10000,//超时时间设置为10秒；
+							success:function(response){
+								if(response.DATA==undefined){
+									_this.HdList=[]
+									$("#NumPrice").text('0.00')
+									$("#YePrice").text('0.00')
+								}
+								else{
+									var monthPrice=0//总金额
+									var amonthprice=0
+									_this.HdList=JSON.parse(response.DATA)
+									localStorage.setItem('list',JSON.stringify(_this.HdList))
+									JSON.parse(response.DATA).forEach((item)=>{
+										monthPrice+=parseFloat(item.PM0001_BALANCE)
+										amonthprice+=parseFloat(item.PM0001_TAMOUNT)
+									})
+									_this.Months=monthPrice
+									_this.UtilPrice=monthPrice
+									_this.Amonth=amonthprice
+									$("#NumPrice").text(amonthprice)
+									$("#YePrice").text(monthPrice)
+									console.log(JSON.parse(response.DATA))
+									_this.getFlow()
+								}
+								localStorage.setItem('ZPirce',monthPrice)
+							},
+							error:function(xhr,type,errorThrown){
+								console.log(xhr)
+							}
+						});
+					},
+					//获取电子券列表(发放手机号个数，总记录数)
+					getFlow(){
+						var _this=this
+						var UserInfo=JSON.parse(JSON.parse(localStorage.getItem('UserInfo')))
+						var YFMoeny=0.00
+						//获取电子券数据
+						// var jsons={
+						// 	method:'alllist',
+						// 	userid:UserInfo.PM0003_ID,
+						// 	
+						// }
+						var jsons={
+							method:'alllist',
+							userid:UserInfo.PM0003_ID,
+							promoteid:'',
+							siteid:'',
+							begintime:'',
+							endtime:'',
+							state:''
+						}
+						var AesJson=encodeURIComponent(encrypt(JSON.stringify(jsons),UserInfo.PM0003_TOKEN))
+						$.ajax(`${CouponInfoMs}?params=${AesJson}&smsuserid=${UserInfo.PM0003_ID}`,{
+							data:{},
+							dataType:'json',//服务器返回json格式数据
+							type:'POST',//HTTP请求类型
+							timeout:10000,//超时时间设置为10秒；
+							async:false,
+							success:function(response){
+								console.log(response)
+								var CodeNum=0
+								var NumPrice=0
+								var Phone=[]
+								if(response.DATA==undefined){
+									NumPrice=0
+									CodeNum=0
+									Phone=[]
+								}
+								else{		
+									var data=JSON.parse(response.DATA)
+									console.log(data)
+									data.forEach(function(item){
+										// console.log(item)
+										NumPrice+=parseFloat(item.PM0002_COUPON_AMOUNT)
+										//_this.UtilPrice-=parseFloat(item.PM0002_COUPON_AMOUNT)
+										CodeNum++
+										YFMoeny+=parseFloat(item.PM0002_COUPON_AMOUNT)
+										if(Phone.length==0){
+											Phone.push(item.PM0002_RECIPIENT)
+										}
+										else{
+											var flag=false
+											Phone.forEach(function(items){
+												if(items==item.PM0002_RECIPIENT){
+													flag=true
+												}
+											})
+											if(!flag){
+												Phone.push(item.PM0002_RECIPIENT)
+											}
+										}
+									})
+								}
+									NumPrice=NumPrice/100
+									$("#YfPrice").text(NumPrice)
+									$("#YfPhone").text(Phone.length+'个')
+									$("#YfQnum").text(CodeNum+'张')
+									var price={
+										NumPrice:_this.Amonth,
+										UtilPrice:_this.UtilPrice,
+										Len:Phone.length,
+										CodeNum:CodeNum,
+										fafangprice:NumPrice
+									}
+									localStorage.setItem('LPrice',JSON.stringify(price))
+									var text=[
+										{value:0,name:'',itemStyle: {normal: {color:'#00E5EE',label:{textStyle:{color:'#000000'},position:'inside'}}}},
+										{value:0,name:'',itemStyle: {normal: {color:'#FFE4C4',label:{textStyle:{color:'#000000'},position:'inside'}}}}
+									]
+									text[0].value=_this.UtilPrice
+									text[1].value=price.fafangprice
+									// alert(JSON.stringify(text))
+									var slics=((parseFloat(text[0].value)/parseFloat(_this.Amonth))*100).toFixed(2)
+									text[1].name=`余额占比${slics}%`
+									myChart = echarts.init(document.getElementById('HDmain'));
+									// 指定图表的配置项和数据
+									var option = {
+										// tooltip : {
+										//     trigger: 'item',
+										//     formatter: "{d}%"
+										// },
+										series : [
+											{
+												name: '访问来源',
+												type: 'pie',
+												radius : '55%',
+												center: ['50%', '40%'],
+												labelLine:{  
+													normal:{  
+														length:20
+													}  
+												},
+												title:{               //设置仪表盘中间显示文字样式
+													textStyle: {       // 其余属性默认使用全局文本样式，详见TEXTSTYLE
+														fontWeight: 'bolder',
+														fontSize: 10,
+														fontStyle: 'italic',
+														color:"black"
+													}
+												},
+												data:text,
+												label: {
+													normal: {
+														show: true,
+														position: 'inner',  // 设置标签位置，默认在饼状图外 可选值：'outer' ¦ 'inner（饼状图上）'
+														// formatter: '{a} {b} : {c}个 ({d}%)'   设置标签显示内容 ，默认显示{b}
+														// {a}指series.name  {b}指series.data的name
+														// {c}指series.data的value  {d}%指这一部分占总数的百分比
+														formatter: '{b}'
+													}
+												},
+												itemStyle: {
+													emphasis: {
+														shadowBlur: 10,
+														shadowOffsetX: 0,
+														shadowColor: 'rgba(0, 0, 0, 0.5)'
+													}
+												}
+											}
+										],	
+									};
+									// 使用刚指定的配置项和数据显示图表。
+									myChart.setOption(option);
+							},
+							error:function(xhr,type,errorThrown){
+								console.log(xhr)
+							}
+						});
+					},
+					//登录状态
+					FlagToken(){
+						var UserInfo=JSON.parse(JSON.parse(localStorage.getItem('UserInfo')))
+						var UserPsd=md5(JSON.parse(localStorage.getItem('UserLoginInfo')).password).slice(0,16).toUpperCase()
+						var UserToken={
+							method:'loginstate',
+							userid:UserInfo.PM0003_ID,
+							token:UserInfo.PM0003_TOKEN
+						}
+						console.log(UserToken)
+						console.log(UserPsd)
+						var Flag=false
+						var TokenAesJson=encodeURIComponent(encrypt(JSON.stringify(UserToken),UserPsd))
+						$.ajax(`${GetLoginState}?params=${TokenAesJson}&smsusername=${UserInfo.PM0003_PHONE}`,{
+							data:{},
+							dataType:'json',//服务器返回json格式数据
+							type:'POST',//HTTP请求类型
+							async:false,  //同步方式
+							timeout:10000,//超时时间设置为10秒；
+							success:function(response){
+								console.log(response)
+								if(parseInt(response.LOGINSTATUS)==2&&parseInt(response.RESULT)==0){
+									mui.toast("账号已在另一方登录，已下线",{
+										duration:500
+									});
+									localStorage.removeItem('UserInfo')
+									localStorage.removeItem('UserLoginInfo')
+									setTimeout(function(){
+										window.location.href='index.html'
+									},600)
+									Flag=false
+								}
+								else{
+									Flag=true
+								}
+							},
+							error:function(xhr,type,errorThrown){
+								console.log(xhr)
+							}
+						});
+						return Flag
+					},
+				}
+			})
+		</script>
+		<script>
+			//手机号发券
+			$(function(){
+				$("#PhonQ").click(function(){
+					$("#Details").addClass('Noactive')
+					$("#PhoneQUan").removeClass('Noactive')
+				})
+			})
+			mui.init({
+				swipeBack: false
+			});
+			(function($,doc) {
+				$('.mui-scroll-wrapper').scroll({
+					indicators: true //是否显示滚动条
+				});
+				//用户信息
+				let UserInfo=JSON.parse(JSON.parse(localStorage.getItem('UserInfo')))
+				var startdate = $('.startDate');
+				var startspan=$(".startspan")[0];
+				var enddate = $('.endDate');
+				var endspan=$(".endspan")[0];
+				//开始日期
+				startdate[0].addEventListener('tap', function() {
+					var _self = this;
+					if(_self.picker) {
+						_self.picker.show(function (rs) {
+							console.log(rs)
+							startspan.innerText =rs.text;
+							_self.picker.dispose();
+							_self.picker = null;
+						});
+					} else {
+						var optionsJson = this.getAttribute('data-options') || '{}';
+						var options = JSON.parse(optionsJson);
+						var id = this.getAttribute('id');
+							_self.picker = new $.DtPicker(options);
+							_self.picker.show(function(rs) {
+							startspan.innerText =rs.text;
+							_self.picker.dispose();
+							_self.picker = null;
+						});
+					}			
+				}, false);
+				//结束日期
+				enddate[0].addEventListener('tap', function() {
+					var _self = this;
+					if(_self.picker) {
+						_self.picker.show(function (rs) {
+							console.log(rs)
+							endspan.innerText =rs.text;
+							_self.picker.dispose();
+							_self.picker = null;
+						});
+					} else {
+						var optionsJson = this.getAttribute('data-options') || '{}';
+						var options = JSON.parse(optionsJson);
+						var id = this.getAttribute('id');
+							_self.picker = new $.DtPicker(options);
+							_self.picker.show(function(rs) {
+							endspan.innerText =rs.text;
+							_self.picker.dispose();
+							_self.picker = null;
+						});
+					}			
+				}, false);
+				//选择活动
+				var showUserPickerButton = doc.getElementById('showCompany');
+				var selectCompanyButton=doc.getElementById('selectCompany');
+				var userResult = doc.getElementById('company');
+				var userPicker = new $.PopPicker();
+				var userPickers = new $.PopPicker();
+				var NumPrices=doc.getElementById('NumPrice');//总金额
+				var YePrices=doc.getElementById('YePrice');//活动余额
+				var YfPhones=doc.getElementById('YfPhone');//已发手机号
+				var YfQnums=doc.getElementById('YfQnum');//已发券数
+				var YfPrices=doc.getElementById('YfPrice');//已发放金额
+				var Companylist=[]
+				var Companylists=[
+					{
+						text:'全部',
+						value:''
+					}
+				]
+				var HdFlag=true
+				var HdAllFlag=true
+				if(UserInfo==null){
+					mui.toast(Message,{
+						duration:1000
+					});
+					Companylist=[]
+					Companylists=[]
+				}
+				else{
+					var UserCompanyID=UserInfo.PM0003_APP_STORE_ID
+					var json={
+						method:'validlist',
+						merchantid:UserCompanyID,
+						siteid:UserInfo.SITE_ID,
+						roleid:UserInfo.PM0003_ROLE_ID	
+					}
+					var Toation=UserInfo.PM0003_TOKEN
+					var AesJson=encodeURIComponent(encrypt(JSON.stringify(json),Toation))
+					//活动列表
+					$.ajax(`${PromoteMs}?params=${AesJson}&smsuserid=${UserInfo.PM0003_ID}`,{
+						data:{},
+						dataType:'json',//服务器返回json格式数据
+						type:'POST',//HTTP请求类型
+						timeout:10000,//超时时间设置为10秒；
+						async:false,
+						success:function(response){
+							console.log(response)
+							if(response.DATA==undefined){
+								HdFlag=false
+								return
+							}
+							console.log(JSON.parse(response.DATA))
+							JSON.parse(response.DATA).forEach(function(item){
+								item.text=item.PM0001_ANAME
+								Companylist.push(item)
+							})
+							userPicker.setData(Companylist);
+						},
+						error:function(xhr,type,errorThrown){console.log(xhr)}
+					});
+					var jsonall={
+						method:'list',
+						merchantid:UserCompanyID,
+						siteid:UserInfo.SITE_ID,
+						roleid:UserInfo.PM0003_ROLE_ID	
+					}
+					console.log(jsonall)
+					var Toation=UserInfo.PM0003_TOKEN
+					var AesJson=encodeURIComponent(encrypt(JSON.stringify(jsonall),Toation))
+					$.ajax(`${PromoteMs}?params=${AesJson}&smsuserid=${UserInfo.PM0003_ID}`,{
+						data:{},
+						dataType:'json',//服务器返回json格式数据
+						type:'POST',//HTTP请求类型
+						timeout:10000,//超时时间设置为10秒；
+						async:false,
+						success:function(response){
+							console.log(response)
+							if(response.DATA==undefined){
+								HdAllFlag=false
+								return
+							}
+							console.log(JSON.parse(response.DATA))
+							JSON.parse(response.DATA).forEach(function(item){
+								item.text=item.PM0001_ANAME
+								Companylists.push(item)
+							})
+							userPickers.setData(Companylists);
+						},
+						error:function(xhr,type,errorThrown){console.log(xhr)}
+					});
+				}
+				var PriceList=[]
+				//选择金额
+				var showUserPickerButtons = doc.getElementById('showCompanyPrice');
+				var ComId=doc.getElementById('CompanyId')
+				var ComIdAll=doc.getElementById('CompanyIdAll')
+				var userResults = doc.getElementById('companyprice');
+				var HDbottoms= doc.getElementById('HDbottom').getAttribute("class");
+				var selcompanys=doc.getElementById('selcompany');
+				if(UserInfo!=null){
+					if(HdFlag){
+						//发券活动列表选择
+						showUserPickerButton.addEventListener('tap', function(event) {
+							userPicker.show(function(items) {
+								PriceList=[]
+								console.log($(this))
+								userResults.innerText='请选择金额'
+								console.log(items)
+								PriceList.push({
+									text:items[0].PM0001_SAMOUNT
+								})
+								console.log(showUserPickerButton.childNodes[1].childNodes[1])
+								$(userResult)[0].innerText=items[0].text
+								$(ComId)[0].value=items[0].PM0001_NO
+							});
+						}, false);
+					}
+					if(HdAllFlag){
+						//活动汇总列表选择
+						selectCompanyButton.addEventListener('tap', function(event) {
+							userPickers.show(function(items) {
+								var index=0
+								var arr=[]
+								var moneynum=0
+								var moneynums=0//总金额
+								var UtilsPrices=0
+								var numprice=0
+								var prolist=JSON.parse(localStorage.getItem('list'))
+								console.log(prolist)
+								if(items[0].text=='全部'){
+									selcompanys.innerText=items[0].text
+									NumPrices.innerText=localStorage.getItem('ZPirce')
+									var pricxe=JSON.parse(localStorage.getItem('LPrice'))
+									console.log(JSON.parse(localStorage.getItem('LPrice')))
+									moneynums=pricxe.NumPrice//总金额
+									UtilsPrices=pricxe.UtilPrice//余额
+									numprice=localStorage.getItem('ZPirce')
+									NumPrices.innerText=moneynums
+									YePrices.innerText=pricxe.UtilPrice
+									YfPhones.innerText=pricxe.Len
+									YfQnums.innerText=pricxe.CodeNum
+									YfPrices.innerText=pricxe.fafangprice
+								}
+								else{
+									
+									var json={
+										method:'alllist',
+										userid:UserInfo.PM0003_ID,
+										promoteid:items[0].PM0001_NO,
+										siteid:'',
+										begintime:'',
+										endtime:'',
+										state:''
+									}
+									console.log(json)
+									var AesJson=encodeURIComponent(encrypt(encodeURIComponent(JSON.stringify(json)),UserInfo.PM0003_TOKEN))
+									$.ajax(`${CouponInfoMs}?params=${AesJson}&smsuserid=${UserInfo.PM0003_ID}`,{
+										data:{},
+										dataType:'json',//服务器返回json格式数据
+										type:'POST',//HTTP请求类型
+										async:false,
+										timeout:10000,//超时时间设置为10秒；
+										success:function(response){
+											console.log(response)
+											if(response.DATA==undefined){
+												YfPhones.innerText="0个"
+												YfQnums.innerText="0条"
+												YfPrices.innerText=0.00
+											}
+											else{
+												console.log(JSON.parse(response.DATA))	
+												JSON.parse(response.DATA).forEach((item)=>{
+													index++
+													moneynum+=parseFloat(item.PM0002_COUPON_AMOUNT)
+													if(arr.length==0){
+														arr.push(item.PM0002_RECIPIENT)
+													}
+													else{
+														var flag=false
+														arr.forEach((items)=>{
+															if(items==item.PM0002_RECIPIENT){
+																flag=true
+															}
+														})
+														if(!flag){
+															arr.push(item.PM0002_RECIPIENT)
+														}
+													}
+												})
+												YfPhones.innerText=arr.length+"个"
+												YfQnums.innerText=index+"条"
+												// YfPrices.innerText=moneynum
+											}	
+										},
+										error:function(xhr,type,errorThrown){
+											console.log(xhr)
+										}
+									});
+									selcompanys.innerText=items[0].PM0001_ANAME
+									// var classval=HDbottoms.replace('HDActive','')
+									// doc.getElementById('HDbottom').setAttribute('class',classval)
+									NumPrices.innerText=parseInt(items[0].PM0001_TAMOUNT)
+									//UtilsPrices=parseFloat(items[0].PM0001_TAMOUNT)-parseFloat(moneynum)
+									numprice=items[0].PM0001_TAMOUNT
+									YePrices.innerText=items[0].PM0001_BALANCE
+									YfPrices.innerText=parseInt(moneynum)/100
+									console.log(items)
+								}
+								var text=[
+									{value:0,name:'',itemStyle: {normal: {color:'#00E5EE',label:{textStyle:{color:'#000000'},position:'inside'}}}},
+									{value:0,name:'',itemStyle: {normal: {color:'#FFE4C4',label:{textStyle:{color:'#000000'},position:'inside'}}}}
+								]
+								text[0].value=NumPrices.innerText
+								text[1].value=YfPrices.innerText
+															// alert(JSON.stringify(text))
+								var slics=((parseFloat(YePrices.innerText)/parseFloat(text[0].value))*100).toFixed(2)
+								text[1].name=`余额占比${slics}%`
+								console.log(text)
+								myChart = echarts.init(document.getElementById('HDmain'));
+								// 指定图表的配置项和数据
+								var option = {
+									// tooltip : {
+									//     trigger: 'item',
+									//     formatter: "{d}%"
+									// },
+									series : [
+										{
+											name: '访问来源',
+											type: 'pie',
+											radius : '55%',
+											center: ['50%', '40%'],
+											labelLine:{  
+												normal:{  
+													length:20
+												}  
+											},
+											title:{               //设置仪表盘中间显示文字样式
+												textStyle: {       // 其余属性默认使用全局文本样式，详见TEXTSTYLE
+													fontWeight: 'bolder',
+													fontSize: 10,
+													fontStyle: 'italic',
+													color:"black"
+												}
+											},
+											data:text,
+											label: {
+												normal: {
+													show: true,
+													position: 'inner',  // 设置标签位置，默认在饼状图外 可选值：'outer' ¦ 'inner（饼状图上）'
+													// formatter: '{a} {b} : {c}个 ({d}%)'   设置标签显示内容 ，默认显示{b}
+													// {a}指series.name  {b}指series.data的name
+													// {c}指series.data的value  {d}%指这一部分占总数的百分比
+													formatter: '{b}'
+												}
+											},
+											itemStyle: {
+												emphasis: {
+													shadowBlur: 10,
+													shadowOffsetX: 0,
+													shadowColor: 'rgba(0, 0, 0, 0.5)'
+												}
+											}
+										}
+									],	
+								};
+								// 使用刚指定的配置项和数据显示图表。
+								myChart.setOption(option);
+							});
+						}, false);
+					}
+					else{
+						mui.toast("活动已过期",{
+							duration:1000
+						});
+					}
+				}
+				else{
+					mui.toast(Message,{
+						duration:1000
+					});
+				}
+				//活动金额选择
+				showUserPickerButtons.addEventListener('tap', function(event) {
+					if(PriceList.length!=0){
+					var userPicker = new $.PopPicker();
+					userPicker.setData(PriceList);
+					userPicker.show(function(items) {
+						userResults.innerText=items[0].text
+						console.log(items)
+					});
+					}
+					else{
+						mui.toast("请先选择活动",{
+							duration:1000
+						});
+					}
+				}, false);
+			})(mui,document);
+		</script>
+		<script type="text/javascript">
+			$(function(){
+				//获取当前日期
+				function getDate(type) {
+					const date = new Date();
+					let year = date.getFullYear();
+					let month = date.getMonth() + 1;
+					let day = date.getDate();
+					if (type === 'start') {
+						year = year - 60;
+					} else if (type === 'end') {
+						year = year + 2;
+					}
+					month = month > 9 ? month : '0' + month;;
+					day = day > 9 ? day : '0' + day;
+					return `${year}-${month}-${day}`;
+				}
+				//设置日期前一个星期
+				function fun_date(aa){
+					var date1 = new Date(),
+					time1=date1.getFullYear()+"-"+(date1.getMonth()+1)+"-"+date1.getDate();//time1表示当前时间
+					var date2 = new Date(date1);
+					date2.setDate(date1.getDate()+aa);
+					let month = date2.getMonth() + 1;
+					let day = date2.getDate();
+					month = month > 9 ? month : '0' + month;;
+					day = day > 9 ? day : '0' + day;
+					var time2 = date2.getFullYear()+"-"+month+"-"+day;
+					return time2;
+				}
+				$(".endspan").text(getDate())
+				$(".startspan").text(fun_date(-7))
+			})
+		</script>
+		<script type="text/javascript">
+			var Proportion=''
+			var UserInfo=JSON.parse(JSON.parse(localStorage.getItem('UserInfo')))
+			console.log(UserInfo)
+			if(UserInfo!=null){
+				var YFMoeny=0.00
+				//获取电子券数据
+				var jsons={
+					method:'data',
+					userid:UserInfo.PM0003_ID
+				}
+				console.log(jsons)
+				var AesJson=encodeURIComponent(encrypt(JSON.stringify(jsons),UserInfo.PM0003_TOKEN))
+				//获取电子券列表
+				$.ajax(`${CouponInfoMs}?params=${AesJson}&smsuserid=${UserInfo.PM0003_ID}`,{
+					data:{},
+					dataType:'json',//服务器返回json格式数据
+					type:'POST',//HTTP请求类型
+					timeout:10000,//超时时间设置为10秒；
+					async:false,
+					success:function(response){
+						if(response.DATA==undefined){
+							return
+						}
+						else{
+							var data=JSON.parse(response.DATA)
+							console.log(data)
+							var CodeNum=0
+							var Phone=[]
+							data.forEach(function(item){
+								CodeNum++
+								YFMoeny+=parseFloat(item.PM0002_COUPON_AMOUNT)*100
+								if(Phone.length==0){
+									Phone.push(item.PM0002_RECIPIENT)
+								}
+								else{
+									var flag=false
+									Phone.forEach(function(items){
+										if(items==item.PM0002_RECIPIENT){
+											flag=true
+										}
+									})
+									if(!flag){
+										Phone.push(item.PM0002_RECIPIENT)
+									}
+								}
+							})
+							$("#YfPhone").text(Phone.length+'个')
+							$("#YfQnum").text(CodeNum+'张')
+						}
+					},
+					error:function(xhr,type,errorThrown){
+						console.log(xhr)
+					}
+				});	
+				var myChart;
+				var text=[
+					{ value: 200, name: '', itemStyle: {normal: {color:'#00E5EE',
+						label:{
+							textStyle:{
+								color:'#000000'
+							},
+							position:'inside'
+						}
+					}}},
+					{ value: 335, name: '', itemStyle: {normal: {color: '#FFE4C4',
+						label:{
+							textStyle:{
+								color:'#000000'
+							},
+							position:'inside'
+						}
+					}}},
+				]
+				//获取备付金
+				var json={
+					merchantid:UserInfo.PM0003_APP_STORE_ID
+				}
+				console.log(json)
+				//判断备付金
+				$.ajax(`${GetReserveInfo}?merchantid=${json.merchantid}`,{
+					data:{},
+					dataType:'json',//服务器返回json格式数据
+					type:'POST',//HTTP请求类型
+					timeout:10000,//超时时间设置为10秒；
+					async:false,
+					success:function(response){
+						console.log(response)
+						if(response.success!='true'){
+							mui.toast(response.result_message)
+							return
+						}
+						var DataJson=JSON.parse(response.result_message)
+						$(".SumPrice").text('￥'+DataJson.备付金总额)
+						$(".DJPrice").text('￥'+DataJson.冻结金额)
+						$(".YFPrice").text('￥'+YFMoeny)
+						$(".SYPrice").text('￥'+DataJson.余额)
+						if(parseInt(DataJson.备付金总额)==0||parseInt(DataJson.余额)==0){
+							text[0].value=0
+							text[1].value=0
+							text[1].name=`余额占比0%`
+							return
+						}
+						text[0].value=DataJson.备付金总额
+						text[1].value=DataJson.余额
+						var slics=((parseFloat(text[1].value)/parseFloat(text[0].value))*100).toFixed(2)
+						text[1].name=`余额占比${slics}%`
+						console.log(slics)
+						myChart = echarts.init(document.getElementById('main'));
+						// 指定图表的配置项和数据
+						var option = {
+							// tooltip : {
+							//     trigger: 'item',
+							//     formatter: "{d}%"
+							// },
+							series : [
+								{
+									name: '访问来源',
+									type: 'pie',
+									radius : '55%',
+									center: ['50%', '40%'],
+									labelLine:{  
+										normal:{  
+											length:20
+										}  
+									},
+									title:{               //设置仪表盘中间显示文字样式
+										textStyle: {       // 其余属性默认使用全局文本样式，详见TEXTSTYLE
+											fontWeight: 'bolder',
+											fontSize: 10,
+											fontStyle: 'italic',
+											color:"black"
+										}
+									},
+									data:text,
+									label: {
+										normal: {
+											show: true,
+											position: 'inner',  // 设置标签位置，默认在饼状图外 可选值：'outer' ¦ 'inner（饼状图上）'
+											// formatter: '{a} {b} : {c}个 ({d}%)'   设置标签显示内容 ，默认显示{b}
+											// {a}指series.name  {b}指series.data的name
+											// {c}指series.data的value  {d}%指这一部分占总数的百分比
+											formatter: '{b}'
+										}
+									},
+									itemStyle: {
+										emphasis: {
+											shadowBlur: 10,
+											shadowOffsetX: 0,
+											shadowColor: 'rgba(0, 0, 0, 0.5)'
+										}
+									}
+								}
+							],	
+						};
+						// 使用刚指定的配置项和数据显示图表。
+						myChart.setOption(option);
+					},
+					error:function(xhr,type,errorThrown){
+						console.log(xhr)
+					}
+				});
+			}
+				
+		</script>
+		<style>
+			.NoType{display: none!important;}
+			input::-webkit-input-placeholder{
+				color: black;
+				font-size: 1rem;
+			}
+			.mui-control-content {
+				background-color: white;
+				min-height: 215px;
+			}
+			.mui-control-content .mui-loading {
+				margin-top: 50px;
+			}
+			.mui-content{
+				height: calc(100vh);
+			}
+			.mui-slider{
+				height: calc(100vh - 44px);
+				background: white;
+			}
+			.mui-slider-group{
+				height: calc(100vh - 88px);
+			}
+			.HDActive{
+				display: none;
+			}
+			.Summary-right{display: flex;align-items: center;}
+			.Summary-lefttops{margin-bottom:10px;}
+			.Summary{background: white;padding: 25px;display: flex;justify-content: space-between;}
+			.circle{
+				width:75px;
+				height:75px;
+				border-radius: 50%;
+				border: 1px solid #ccc;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+			}
+			.Summary-bom{
+				height: 300px;
+				background: white;
+				padding: 25px;
+			}
+			.itemtwobtn{
+				display: flex;
+				justify-content: space-between;
+				margin-bottom: 20px;
+			}
+			.itemtwobtn button{
+				width: 50%;
+				margin-top: 20px;
+			}
+			.Noactive{
+				display: none;
+			}
+			.select-company-left{
+				text-align: center;
+				width: 90%;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				/* background: -webkit-linear-gradient(linear,top bottom,rgb(253,253,253),rgb(206,206,206)); */
+				background:-webkit-linear-gradient(top,rgb(253,253,253),rgb(206,206,206));	
+			}
+			.select-company-right{
+				width: 10%;
+				background:-webkit-linear-gradient( top,rgb(253,253,253) , rgb(222,222,222));
+				display: flex;
+				justify-content: center;
+				align-items: center;
+				line-height: 30px;
+			}
+			.select-company-right image{
+				width: 20px;
+				height: 20px;
+				display: flex;
+				justify-content: center;
+				align-items: center;
+			}
+			.select-company{
+				height: 40px;
+				line-height: 40px;
+				border: 1px solid #CCCCCC;
+				margin-top: 20px;
+				border-radius: 3px;
+				display: flex;justify-content: space-between;
+			}
+			.select-price{
+				background:-webkit-linear-gradient( top,rgb(182,212,243) , rgb(140,188,235));
+			}
+			.mui-slider .mui-segmented-control.mui-segmented-control-inverted~.mui-slider-group .mui-slider-item{
+				border: 0;
+			}
+		</style>
+	</body>
+
+</html>

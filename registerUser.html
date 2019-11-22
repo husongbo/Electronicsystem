@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html class="ui-page-login">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no"/>
+    <meta name="apple-mobile-web-app-capable" content="yes"/>
+    <meta name="apple-mobile-web-app-status-bar-style" content="black"/>
+    <title>新增用户</title>
+    <link href="css/mui.min.css" rel="stylesheet"/>
+	<link rel="stylesheet" href="loading/loadings.css">
+	<script src="js/jquery.js"></script>
+	<script src="js/vue.js"></script>
+	<script src="js/mui.min.js"></script>
+	<script src="util/crypto-js.js"></script>
+	<script src="util/util.js"></script>
+	<script src="util/md5.js"></script>
+	<script src="util/api.js"></script>
+	<script src="loading/loadings.js"></script>
+    <style>
+        .hqyzm{
+            position: absolute;
+            right: 10px;
+            top: 4px;
+			width: 90px;
+            background-color: #f0ad4e;
+            color: #fff;
+            border-radius: 30px;
+            border: none;
+        }
+		.mui-content{
+			background: white;
+			margin-top: 20px;
+		}
+		.mui-input-group:after,.mui-input-group:before{
+			height: 0;
+		}
+		input::-webkit-input-placeholder {
+			color: black;
+			font-size: 1rem;
+		}
+		#site option{
+			
+		}
+    </style>
+</head>
+<body style="background: white;">
+    <header class="mui-bar mui-bar-nav">
+        <span class="mui-action-back mui-icon  mui-pull-left">
+        	<img src="img/left.png" style="width: 25px;height: 25px;">
+        </span>
+        <h1 class="mui-title">新增用户</h1>
+    </header>
+	<!-- 手机号验证 -->
+    <div class="mui-content" id="add">
+        <form class="mui-input-group">
+			<div class="mui-input-row">
+			    <label style="margin: 11px 15px;padding: 0;width: 23%;border-right: 1px solid rgb(240,240,240);">用户名称</label>
+			    <input type="tel" id="Name" class="mui-input-clear mui-input" placeholder="请输入用户名称"/>
+			</div>
+            <div class="mui-input-row">
+                <label style="margin: 11px 15px;padding: 0;width: 23%;border-right: 1px solid rgb(240,240,240);">手机号</label>
+                <input type="tel" id="phone" class="mui-input-clear mui-input" placeholder="请输入手机号码"/>
+            </div>
+            <div class="mui-input-row">
+                <label style="margin: 11px 15px;padding: 0;width: 23%;border-right: 1px solid rgb(240,240,240);">验证码</label>
+                <input type="text" class="mui-input InputCode" placeholder="验证码"/>
+                <button type="button" class="hqyzm" onclick="GetCode()">获取验证码</button>
+            </div>
+			<div class="mui-input-row">
+			    <label style="margin: 11px 15px;padding: 0;width: 23%;border-right: 1px solid rgb(240,240,240);">选择站点</label>
+			    <select id="site" style="font-size:1rem;">
+					<option value ="" style="display: none;">请选择站点</option>
+			    	<option v-for="(item,index) in SiteList" :value="item.PM0006_NO">{{item.PM0006_NAME}}</option>
+			    </select>
+			</div>
+        </form>
+        <div class="mui-content-padded">
+            <button class="mui-btn mui-btn-block mui-btn-danger border-radius" onclick="RegUser()" style="height: 40px;line-height:.8rem;margin-top: 40px;border-radius: 20px;background: #f0ad4e;border: 0;">确 定</button>
+        </div>
+    </div>
+	<script type="text/javascript">
+		
+		new Vue({
+			el: '#add',
+			data: {
+				SiteList:[]
+			},
+			created(){
+				var flag=this.FlagToken()
+				if(flag){
+					var _this=this
+					var UserInfo=JSON.parse(localStorage.getItem('UserInfo'))
+					var json={
+						merchantid:JSON.parse(UserInfo).PM0003_APP_STORE_ID
+					}
+					var AesJson=encodeURIComponent(encrypt(JSON.stringify(json),JSON.parse(UserInfo).PM0003_TOKEN))
+					$.ajax(`${GetSiteList}?params=${AesJson}&smsuserid=${JSON.parse(UserInfo).PM0003_ID}`,{
+						data:{},
+						dataType:'json',//服务器返回json格式数据
+						type:'POST',//HTTP请求类型
+						timeout:10000,//超时时间设置为10秒；
+						success:function(response){
+							if(response.DATA==undefined){
+								mui.toast("暂无站点，请先添加站点",{
+									duration:1000
+								});
+								return
+							}
+							_this.SiteList=JSON.parse(response.DATA)
+							console.log(_this.SiteList)
+						},
+						error:function(xhr,type,errorThrown){
+							console.log(xhr)
+						}
+					});
+				}
+			},
+			methods:{
+				FlagToken(){
+					var UserInfo=JSON.parse(JSON.parse(localStorage.getItem('UserInfo')))
+					var UserPsd=md5(JSON.parse(localStorage.getItem('UserLoginInfo')).password).slice(0,16).toUpperCase()
+					var UserToken={
+						method:'loginstate',
+						userid:UserInfo.PM0003_ID,
+						token:UserInfo.PM0003_TOKEN
+					}
+					console.log(UserToken)
+					console.log(UserPsd)
+					var Flag=false
+					var TokenAesJson=encodeURIComponent(encrypt(JSON.stringify(UserToken),UserPsd))
+					$.ajax(`${GetLoginState}?params=${TokenAesJson}&smsusername=${UserInfo.PM0003_PHONE}`,{
+						data:{},
+						dataType:'json',//服务器返回json格式数据
+						type:'POST',//HTTP请求类型
+						async:false,  //同步方式
+						timeout:10000,//超时时间设置为10秒；
+						success:function(response){
+							console.log(response)
+							if(parseInt(response.LOGINSTATUS)==2&&parseInt(response.RESULT)==0){
+								mui.toast("账号已在另一方登录，已下线",{
+									duration:500
+								});
+								localStorage.removeItem('UserInfo')
+								localStorage.removeItem('UserLoginInfo')
+								setTimeout(function(){
+									window.location.href='index.html'
+								},600)
+								Flag=false
+							}
+							else{
+								Flag=true
+							}
+						},
+						error:function(xhr,type,errorThrown){
+							console.log(xhr)
+						}
+					});
+					return Flag
+				},
+			}
+		})
+	</script>
+	<script type="text/javascript">
+		let UserInfo=JSON.parse(localStorage.getItem('UserInfo'))
+		var GetCodes=document.getElementsByClassName('hqyzm')//验证码按钮
+		var InputCodes=document.getElementsByClassName('InputCode')//验证码
+		var UserPhone=document.getElementById('phone')//手机号
+		var Names=document.getElementById('Name')//用户名
+		var Site=document.getElementById('site')
+		var YZPhone=/^1[3456789]\d{9}$/
+		var CodeFlag=false//判断是否发送验证码
+		const Len=60
+		var Inter=''
+		//发送验证码
+		function GetCode(){
+			var Flag=FlagToken()
+			if(Flag){
+				//手机格式
+				if(!YZPhone.test($(UserPhone)[0].value)){
+					mui.toast('手机号格式不正确，请重新输入',{
+						duration:1000
+					});
+					$(UserPhone)[0].value=''
+					return
+				}
+				if(GetCodes[0].innerText=='获取验证码'){
+					//api
+					var json={
+						phone:$(UserPhone)[0].value,
+						merchantid:JSON.parse(UserInfo).PM0003_APP_STORE_ID
+					}
+					$.ajax(`${DYSendSms}?phone=${json.phone}&merchantid=${json.merchantid}`,{
+						data:{},
+						dataType:'json',//服务器返回json格式数据
+						type:'POST',//HTTP请求类型
+						timeout:10000,//超时时间设置为10秒；
+						success:function(response){
+							console.log(response)
+							CodeFlag=true
+							GetCodes[0].innerText=Len
+							Inter=setInterval(function(){
+								GetCodes[0].innerText=parseInt(GetCodes[0].innerText)-1
+								if(parseInt(GetCodes[0].innerText)==0){
+									clearInterval(Inter)
+									GetCodes[0].innerText='获取验证码'
+									CodeFlag=false
+								}
+							},1000)
+						},
+						error:function(xhr,type,errorThrown){
+							console.log(xhr)
+						}
+					});				
+				}
+				else{
+					return
+				}
+			}
+		}
+		//新增用户
+		function RegUser() {
+			var Flag=FlagToken()
+			if(Flag){
+				var siteindex=Site.selectedIndex
+				var sitevalue=Site.options[siteindex].value
+				var sitetext=Site.options[siteindex].text
+				if(!YZPhone.test($(UserPhone)[0].value)){
+					mui.toast('手机号格式不正确，请重新输入',{
+						duration:1000
+					});
+					$(UserPhone)[0].value=''
+					return
+				}
+				if(!CodeFlag){
+					mui.toast('请先获取验证码',{
+						duration:1000
+					});
+					return
+				}
+				if($(Names)[0].value==''){
+					mui.toast('用户名不可以为空',{
+						duration:1000
+					});
+				}
+				//站点
+				if(Site.options[siteindex].value==''||Site.options[siteindex].value==null){
+					mui.toast('请选择站点',{
+						duration:1000
+					});
+					return
+				}
+				mui.showLoading("添加中...","div");
+				var CodeJson={
+					phone:$(UserPhone)[0].value,
+					code:$(InputCodes)[0].value
+				}
+				console.log(CodeJson)
+				var AesCodeJson=encodeURIComponent(encrypt(JSON.stringify(CodeJson),JSON.parse(UserInfo).PM0003_TOKEN))
+				$.ajax(`${CheckValidate}?params=${AesCodeJson}&smsuserid=${JSON.parse(UserInfo).PM0003_ID}`,{
+					data:{},
+					dataType:'json',//服务器返回json格式数据
+					type:'POST',//HTTP请求类型
+					timeout:10000,//超时时间设置为10秒；
+					success:function(response){
+						console.log(response)
+						if(parseInt(response.RESULT)==1&&response.MESSAGE=='验证码正确'){
+							var json={
+								method:'add',
+								phone:$(UserPhone)[0].value,
+								merchantid:JSON.parse(UserInfo).PM0003_APP_STORE_ID,
+								createuser:JSON.parse(UserInfo).PM0003_PHONE,
+								siteid:sitevalue,
+								realname:$(Names)[0].value
+							}
+							console.log(json)
+							var AesJson=encodeURIComponent(encrypt(encodeURIComponent(JSON.stringify(json)),JSON.parse(UserInfo).PM0003_TOKEN))
+							$.ajax(`${UserInfoMs}?params=${AesJson}&smsuserid=${JSON.parse(UserInfo).PM0003_ID}`,{
+								data:{},
+								dataType:'json',//服务器返回json格式数据
+								type:'POST',//HTTP请求类型
+								timeout:10000,//超时时间设置为10秒；
+								success:function(response){
+									console.log(response)
+									setTimeout(function(){
+										mui.hideLoading()
+										$(UserPhone)[0].value=''
+										$(InputCodes)[0].value=''
+										clearInterval(Inter)
+										GetCodes[0].innerText='获取验证码'
+										CodeFlag=false
+										mui.toast(response.MESSAGE,{
+											duration:1000
+										});
+										setTimeout(()=>{
+											history.back(-1)
+										},1000)
+									},1000)
+								},
+								error:function(xhr,type,errorThrown){
+									console.log(xhr)
+								}
+							});
+						}
+						else{
+							setTimeout(function(){
+								mui.hideLoading()
+								$(InputCodes)[0].value=''
+								mui.toast(response.MESSAGE,{
+									duration:1000
+								});
+							},1000)
+						}
+					},
+					error:function(xhr,type,errorThrown){
+						console.log(xhr)
+					}
+				});
+			}	
+		}
+	</script>
+</body>
+</html>

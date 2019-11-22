@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html class="ui-page-login">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no"/>
+    <meta name="apple-mobile-web-app-capable" content="yes"/>
+    <meta name="apple-mobile-web-app-status-bar-style" content="black"/>
+    <title>新增活动</title>
+    <link href="css/mui.min.css" rel="stylesheet"/>
+	<link rel="stylesheet" href="loading/loadings.css">
+	<link rel="stylesheet" type="text/css" href="css/mui.picker.min.css" />
+	<link href="css/mui.picker.css" rel="stylesheet" />
+	<link href="css/mui.poppicker.css" rel="stylesheet" />
+	<script src="js/jquery.js"></script>
+	<script src="js/mui.min.js"></script>
+	<script src="js/mui.picker.min.js"></script>
+	<script src="js/mui.picker.js"></script>
+	<script src="js/mui.poppicker.js"></script>
+	<script src="https://res.wx.qq.com/open/js/jweixin-1.0.0.js"></script>
+	<script src="util/crypto-js.js"></script>
+	<script src="util/util.js"></script>
+	<script src="util/md5.js"></script>
+	<script src="util/api.js"></script>
+	<script src="loading/loadings.js"></script>
+	<script src="js/vue.js"></script>
+    <style>
+        .hqyzm{
+            position: absolute;
+            right: 10px;
+            top: 4px;
+			width: 90px;
+            background-color: #f0ad4e;
+            color: #fff;
+            border-radius: 30px;
+            border: none;
+        }
+		.mui-content{
+			background: white;
+			margin-top: 20px;
+		}
+		.mui-input-group:after,.mui-input-group:before{
+			height: 0;
+		}
+		input::-webkit-input-placeholder {
+			color: black;
+			font-size: 1rem;
+		}
+		.drik{height: 100vh;background: rgba(0,0,0,0.3);position: fixed;z-index: 999;top: 0;left: 0;width: 100%;padding: 0 5%;display: flex;align-items: center;}
+		.drik-pos{width: 100%;height: 60vh;background: white;border-radius: 5px;}
+		.close{display: flex;justify-content: flex-end;padding-top: 5px;padding-right: 5px;}
+		.drikall{display: flex;flex-direction: row;padding-left: 20px;align-items: center;padding-bottom:5px;border-bottom: 1px dotted rgb(240,240,240);}
+		.checkedall{display: flex;flex-direction: row;padding-left: 20px;align-items: center;border-bottom: 1px dotted rgb(240,240,240);padding-top: 5px;
+		padding-bottom: 5px;}
+		.checkedparent{
+			height: calc(60vh - 20vh);
+			overflow-y: scroll;
+		}
+		.SiteBtn{width: 80%;height: 40px;background: #ff8200;margin-left: 10%;color: white;line-height: 40px;text-align: center;border-radius: 5px;margin-top: 5%;}
+		.drinkhidden{display: none;}
+    </style>
+</head>
+<body style="background: white;">
+    <header class="mui-bar mui-bar-nav">
+        <span class="mui-action-back mui-icon  mui-pull-left">
+        	<img src="img/left.png" style="width: 25px;height: 25px;">
+        </span>
+        <h1 class="mui-title">新增活动</h1>
+    </header>
+	<!-- 手机号验证 -->
+    <div class="mui-content" id="add">
+        <form class="mui-input-group">
+            <div class="mui-input-row">
+                <label style="margin: 11px 15px;padding: 0;width: 40%;border-right: 1px solid rgb(240,240,240);">活动名称</label>
+                <input type="text" id="ActName" style="width: 50%;" class="mui-input-clear mui-input" placeholder="请输入活动名称"/>
+            </div>
+			<div class="mui-input-row" style="display: flex;justify-content: space-between;align-items: center;">
+			    <label style="margin: 11px 15px;padding: 0;width: 40%;border-right: 1px solid rgb(240,240,240);">选择站点</label>
+				<div class="selectsite" style="width: 50%;height: 40px;line-height: 40px;" onclick="SelectSite()">请选择站点</div>
+				<div class="drik drinkhidden">
+					<div class="drik-pos">
+						<div class="close" onclick="drikClose()">
+							<img src="img/close.png" style="width: 25px;height: 25px;">
+						</div>
+						<!-- 全选 -->
+						<div class="drikall" onclick="CheckedAll(this)" rel='false'>
+							<img src="img/check.png" style="width: 25px;height: 25px;">
+							<span style="margin-left: 5px;font-size: .8rem;">全选</span>
+						</div>
+						<!-- 多选 -->
+						<div class="checkedparent" >
+							<div class="checkedall" rel="false" onclick="CheckedSite(this)" v-for="(item,index) in SiteList">
+								<img src="img/check.png" style="width: 25px;height: 25px;" :rel="item.ID">
+								<span style="margin-left: 5px;font-size: .8rem;">{{item.PM0006_NAME}}</span>
+							</div>
+						</div>
+						<!-- 确定 -->
+						<div class="SiteBtn" onclick="SiteClick()">确定</div>
+					</div>
+				</div>
+			    <!-- <select id="site" style="color:black;font-size:1rem;width: 50%;">
+					<option value ="" style="display: none;">请选择站点</option>
+			    	<option v-for="(item,index) in SiteList" :value="item.PM0006_NO">{{item.PM0006_NAME}}</option>
+			    </select> -->
+			</div>
+			<div class="mui-input-row">
+			    <label style="margin: 11px 15px;padding: 0;width: 40%;border-right: 1px solid rgb(240,240,240);">活动总金额</label>
+			    <input type="number" id="CountPrice" style="width: 50%;" class="mui-input-clear mui-input" placeholder="请输入活动总金额"/>
+			</div>
+			<div class="mui-input-row">
+			    <label style="margin: 11px 15px;padding: 0;width: 40%;border-right: 1px solid rgb(240,240,240);">单价金额</label>
+			    <input type="number" id="UtilPrice" style="width: 50%;" class="mui-input-clear mui-input" placeholder="请输入单价金额"/>
+			</div>
+			<div class="mui-input-row" style="display: flex;justify-content: space-between;align-items: center;">
+			    <label style="margin: 11px 15px;padding: 0;width: 40%;border-right: 1px solid rgb(240,240,240);">活动日期(起)</label>
+			    <div class="startDate" style="width: 50%;height: 40px;line-height: 40px;" data-options='{"type":"date"}'>
+			    	请选择活动日期(起)
+			    </div>
+			</div>
+			<div class="mui-input-row" style="display: flex;justify-content: space-between;align-items: center;">
+			    <label style="margin: 11px 15px;padding: 0;width: 40%;border-right: 1px solid rgb(240,240,240);">活动日期(止)</label>
+			    <div class="endDate" style="width: 50%;height: 40px;line-height: 40px;" data-options='{"type":"date"}'>
+			    	请选择活动日期(止)
+			    </div>
+			</div>
+			<div class="mui-input-row" style="display: flex;justify-content: space-between;">
+			    <label style="margin: 15px 15px;padding: 0;width: 40%;border-right: 1px solid rgb(240,240,240);">活动状态</label>
+				<div style="display: flex;width: 50%;">
+					<div class="mui-switch mui-switch-blue mui-switch-mini">
+						<div class="mui-switch-handle"></div>
+					</div>
+				</div>
+			</div>
+        </form>
+        <div class="mui-content-padded">
+            <button onclick="AddActBtn()" class="mui-btn mui-btn-block mui-btn-danger border-radius" onclick="" style="height: 40px;line-height:.8rem;margin-top: 40px;border-radius: 20px;background: #f0ad4e;border: 0;">确 定</button>
+        </div>
+    </div>
+	<script type="text/javascript">
+		
+		new Vue({
+			el: '#add',
+			data: {
+				SiteList:[]
+			},
+			created(){
+				var flag=this.FlagToken()
+				if(flag){
+					var _this=this
+					var UserInfo=JSON.parse(localStorage.getItem('UserInfo'))
+					var json={
+						merchantid:JSON.parse(UserInfo).PM0003_APP_STORE_ID
+					}
+					var Toation=JSON.parse(UserInfo).PM0003_TOKEN
+					var AesJson=encodeURIComponent(encrypt(JSON.stringify(json),JSON.parse(UserInfo).PM0003_TOKEN))
+					$.ajax(`${GetSiteList}?params=${AesJson}&smsuserid=${JSON.parse(UserInfo).PM0003_ID}`,{
+						data:{},
+						dataType:'json',//服务器返回json格式数据
+						type:'POST',//HTTP请求类型
+						timeout:10000,//超时时间设置为10秒；
+						success:function(response){
+							if(response.DATA==undefined){
+								mui.toast("暂无站点，请先添加站点",{
+									duration:1000
+								});
+								return
+							}
+							_this.SiteList=JSON.parse(response.DATA)
+							console.log(_this.SiteList)
+						},
+						error:function(xhr,type,errorThrown){
+							console.log(xhr)
+						}
+					});
+				}
+			},
+			methods:{
+				FlagToken(){
+					var UserInfo=JSON.parse(JSON.parse(localStorage.getItem('UserInfo')))
+					var UserPsd=md5(JSON.parse(localStorage.getItem('UserLoginInfo')).password).slice(0,16).toUpperCase()
+					var UserToken={
+						method:'loginstate',
+						userid:UserInfo.PM0003_ID,
+						token:UserInfo.PM0003_TOKEN
+					}
+					console.log(UserToken)
+					console.log(UserPsd)
+					var Flag=false
+					var TokenAesJson=encodeURIComponent(encrypt(JSON.stringify(UserToken),UserPsd))
+					$.ajax(`${GetLoginState}?params=${TokenAesJson}&smsusername=${UserInfo.PM0003_PHONE}`,{
+						data:{},
+						dataType:'json',//服务器返回json格式数据
+						type:'POST',//HTTP请求类型
+						async:false,  //同步方式
+						timeout:10000,//超时时间设置为10秒；
+						success:function(response){
+							console.log(response)
+							if(parseInt(response.LOGINSTATUS)==2&&parseInt(response.RESULT)==0){
+								mui.toast("账号已在另一方登录，已下线",{
+									duration:500
+								});
+								localStorage.removeItem('UserInfo')
+								localStorage.removeItem('UserLoginInfo')
+								setTimeout(function(){
+									window.location.href='index.html'
+								},600)
+								Flag=false
+							}
+							else{
+								Flag=true
+							}
+						},
+						error:function(xhr,type,errorThrown){
+							console.log(xhr)
+						}
+					});
+					return Flag
+				},
+			}
+		})
+	</script>
+	<script type="text/javascript">
+		
+	</script>
+	<script type="text/javascript">
+		var isActive=false
+		mui.init({
+			swipeBack:true //启用右滑关闭功能
+		});
+		mui('.mui-content .mui-switch').each(function() {
+			this.addEventListener('toggle', function(event) {
+				//event.detail.isActive 可直接获取当前状态
+				// this.parentNode.querySelector('span').innerText = '状态：' + (event.detail.isActive ? 'true' : 'false');
+				isActive=event.detail.isActive
+			});
+		});
+		(function($,doc) {
+			var startdate = $('.startDate');//开始日期
+			var enddate = $('.endDate');//结束日期
+			//开始日期
+			startdate[0].addEventListener('tap', function() {
+				var _self = this;
+				if(_self.picker) {
+					_self.picker.show(function (rs) {
+						startdate[0].innerText =rs.text;
+						_self.picker.dispose();
+						_self.picker = null;
+					});
+				} else {
+					var optionsJson = this.getAttribute('data-options') || '{}';
+					var options = JSON.parse(optionsJson);
+					var id = this.getAttribute('id');
+						_self.picker = new $.DtPicker(options);
+						_self.picker.show(function(rs) {
+						 startdate[0].innerText =rs.text;
+						_self.picker.dispose();
+						_self.picker = null;
+					});
+				}			
+			}, false);
+			//结束日期
+			enddate[0].addEventListener('tap', function() {
+				var _self = this;
+				if(_self.picker) {
+					_self.picker.show(function (rs) {
+						enddate[0].innerText =rs.text;
+						_self.picker.dispose();
+						_self.picker = null;
+					});
+				} else {
+					var optionsJson = this.getAttribute('data-options') || '{}';
+					var options = JSON.parse(optionsJson);
+					var id = this.getAttribute('id');
+						_self.picker = new $.DtPicker(options);
+						_self.picker.show(function(rs) {
+						 enddate[0].innerText =rs.text;
+						_self.picker.dispose();
+						_self.picker = null;
+					});
+				}			
+			}, false);
+		})(mui,document);
+		var Sitevalue=[]
+		function SelectSite(){
+			console.log(Sitevalue)
+			if(Sitevalue.length!=0){
+				Sitevalue.forEach((item)=>{
+					$(".checkedall").each(function(){
+						var siteid=$(this).find('img').attr('rel')
+						if(siteid==item){
+							var siteid=$(this).find('img').attr('src','img/checked.png')
+							$(this).attr('rel','true')
+						}
+					})
+				})
+			}
+			$(".drik").removeClass('drinkhidden')
+		}
+		function drikClose(){
+			$(".drik").addClass('drinkhidden')
+		}
+		function CheckedSite(val){
+			var rel=$(val).attr('rel')
+			if(rel=='false'){
+				$(val).attr('rel','true')
+				$(val).find('img').attr('src','img/checked.png')
+			}
+			else{
+				$(".drikall").find('img').attr('src','img/check.png')
+				$(val).attr('rel','false')
+				$(val).find('img').attr('src','img/check.png')
+			}
+			console.log($(val).attr('rel'))
+		}
+		function CheckedAll(val){
+			var rel=$(val).attr('rel')
+			if(rel=='false'){
+				$(".checkedall").each(function(){
+					$(this).find('img').attr('src','img/checked.png')
+					$(this).attr('rel','true')
+				})
+				$(val).find('img').attr('src','img/checked.png')
+				$(val).attr('rel','true')
+			}
+			else{
+				$(".checkedall").each(function(){
+					$(this).find('img').attr('src','img/check.png')
+					$(this).attr('rel','false')
+				})
+				$(val).find('img').attr('src','img/check.png')
+				$(val).attr('rel','false')
+			}
+			console.log(rel)
+		}
+		function SiteClick(){
+			Sitevalue=[]
+			$(".checkedall").each(function(){
+				var flag=$(this).attr('rel')
+				if(flag=='true'){
+					var siteid=$(this).find('img').attr('rel')
+					Sitevalue.push(siteid)
+				}
+			})
+			if(Sitevalue.length==0){
+				mui.toast('请选择站点')
+			}
+			else{
+				drikClose()
+				$(".selectsite").text('已选择')
+			}
+			console.log(Sitevalue)
+		}
+		let UserInfo=JSON.parse(localStorage.getItem('UserInfo'))
+		var ActNames=document.getElementById('ActName')//活动名称
+		var CountPrices=document.getElementById('CountPrice')//总金额
+		var UtilPrices=document.getElementById('UtilPrice')//单价
+		var Site=document.getElementById('site')//站点
+		var startDates=document.getElementsByClassName('startDate')//开始日期
+		var endDates=document.getElementsByClassName('endDate')//结束日期
+		//确定
+		function AddActBtn(){
+			var Flag=FlagToken()
+			if(Flag){
+				var state='0'
+				var sitevalues=''
+				// var siteindex=Site.selectedIndex
+				// var sitevalue=Site.options[siteindex].value
+				// var sitetext=Site.options[siteindex].text
+				var Flag=FlagInpvlaue()
+				if(Flag){
+					mui.showLoading("添加中...","div");
+					if(isActive){
+						state='1'
+					}
+					if(Sitevalue.length==1){
+						sitevalues=Sitevalue[0]
+					}
+					else{
+						Sitevalue.forEach((item,index)=>{
+							if(Sitevalue.length==index+1){
+								sitevalues+=item
+							}
+							else{
+								sitevalues+=item+","
+							}
+						})
+					}
+					var json={
+						method:'add',
+						merchantid:JSON.parse(UserInfo).PM0003_APP_STORE_ID,
+						promotename:$(ActNames)[0].value,
+						promotetamount:$(CountPrices)[0].value,
+						state:state,
+						promotesamount:$(UtilPrices)[0].value,
+						siteid:sitevalues,
+						begintime:startDates[0].innerText,
+						endtime:endDates[0].innerText,	
+						createuser:JSON.parse(UserInfo).PM0003_PHONE
+					}
+					console.log(json)
+					var AesJson=encodeURIComponent(encrypt(encodeURIComponent(JSON.stringify(json)),JSON.parse(UserInfo).PM0003_TOKEN))
+					console.log(AesJson)
+					$.ajax(`${PromoteMs}?params=${AesJson}&smsuserid=${JSON.parse(UserInfo).PM0003_ID}`,{
+						data:{},
+						dataType:'json',//服务器返回json格式数据
+						type:'POST',//HTTP请求类型
+						timeout:10000,//超时时间设置为10秒；
+						success:function(response){
+							console.log(response)
+							if(parseInt(response.RESULT)==1&&response.MESSAGE=='新增活动成功'){
+								setTimeout(function(){
+									mui.hideLoading()
+									mui.toast('活动添加成功',{
+										duration:1000
+									});
+									setTimeout(function(){
+										history.back(-1)
+									},1000)
+								},1500)
+							}
+							else{
+								setTimeout(function(){
+									mui.hideLoading()
+									mui.toast('新增活动失败',{
+										duration:1000
+									});
+								},1500)
+							}
+							$(ActNames)[0].value=''
+							$(CountPrices)[0].value=''
+							$(UtilPrices)[0].value=''
+							startDates[0].innerText='请选择活动日期(起)'
+							endDates[0].innerText='请选择活动日期(止)'
+						},
+						error:function(xhr,type,errorThrown){
+							console.log(xhr)
+						}
+					});
+				}
+			}
+		}
+		//判断
+		function FlagInpvlaue(){
+			if($(ActNames)[0].value==''){
+				mui.toast('活动名称不能为空',{
+					duration:1000
+				});
+				return false
+			}
+			else if(Sitevalue.length==0){
+				mui.toast('请选择站点',{
+					duration:1000
+				});
+				return false
+			}
+			else if($(CountPrices)[0].value==''){
+				mui.toast('请输入活动总金额',{
+					duration:1000
+				});
+				return false
+			}
+			else if(parseFloat($(CountPrices)[0].value)<=0){
+				mui.toast('请输入活动总金额大于0的数',{
+					duration:1000
+				});
+				return false
+			}
+			else if($(UtilPrices)[0].value==''){
+				mui.toast('请输入单价金额',{
+					duration:1000
+				});
+				return false
+			}
+			else if(parseFloat($(UtilPrices)[0].value)<=0){
+				mui.toast('请输入单价金额大于0的数',{
+					duration:1000
+				});
+				return false
+			}
+			else if(startDates[0].innerText=='请选择活动日期(起)'){
+				mui.toast('请选择活动日期(起)',{
+					duration:1000
+				});
+				return false
+			}
+			else if(endDates[0].innerText=='请选择活动日期(止)'){
+				mui.toast('请选择活动日期(止)',{
+					duration:1000
+				});
+				return false
+			}
+			else{
+				return true
+			}
+		}
+	</script>
+</body>
+</html>

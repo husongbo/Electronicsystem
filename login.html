@@ -1,0 +1,168 @@
+<!doctype html>
+<html class="no-js">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="description" content="">
+  <meta name="keywords" content="">
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>账号密码登录</title>
+  <meta name="renderer" content="webkit">
+  <meta http-equiv="Cache-Control" content="no-siteapp"/>
+  <link rel="stylesheet" href="css/mui.min.css">
+  <link rel="stylesheet" href="loading/loadings.css">
+  <script src="js/jquery.js"></script>
+  <script src="js/mui.min.js"></script>
+  <script src="loading/loadings.js"></script>
+  <script src="util/crypto-js.js"></script>
+  <script src="util/util.js"></script>
+  <script src="util/md5.js"></script>
+   <script src="util/api.js"></script>
+  <style type="text/css">
+  	.Login{
+		margin-top: 80px;
+		padding: 1rem;
+	}
+	.username{
+		
+	}
+	.mui-content{
+		background: white;
+		padding: 20px;
+		margin-top: 40px;
+	}
+  </style>
+  <script type="text/javascript">
+	  var aa=md5('64c2a5').toUpperCase()
+	  console.log(aa)
+	  //登录
+  	function Login(){
+		var usernames=$(".username").val()
+		var userpsds=$(".userpsd").val()
+		if(usernames==''||userpsds==''){
+			mui.toast('账户或密码不能为空',{
+				duration:1000
+			});
+			$(".username").val('')
+			$(".userpsd").val('')
+			return
+		}
+		mui.showLoading("登陆中...","div");
+		var timestamp = Date.parse(new Date()).toString();
+		console.log(timestamp)
+		var times=timestamp.slice(0,10)
+		var json={
+			username:usernames,
+			password:userpsds,
+			timestamp:times
+		}
+		console.log(json)
+		var PsdMd5=md5(userpsds)
+		console.log(PsdMd5)
+		var sliceapsd=PsdMd5.slice(0,16).toUpperCase()
+		console.log(sliceapsd)
+		console.log(encodeURIComponent(JSON.stringify(json)))
+		var Aesjson=encodeURIComponent(encrypt(JSON.stringify(json),sliceapsd))
+		console.log(Aesjson)
+		$.ajax(`${UserLogin}?params=${Aesjson}&smsusername=${usernames}`,{
+			data:{},
+			dataType:'json',//服务器返回json格式数据
+			type:'POST',//HTTP请求类型
+			timeout:10000,//超时时间设置为10秒；
+			success:function(response){
+				console.log(response)
+				if(response.RESULT==1){
+					setTimeout(function(){
+						mui.hideLoading()
+						mui.toast('账户或密码不正确，请重新输入',{
+							duration:1000
+						});
+						$(".userpsd").val('')
+					},1000)
+					return
+				}
+				else{
+					localStorage.setItem('UserInfo',JSON.stringify(response.USER))
+					setTimeout(function(){
+						mui.hideLoading()
+						localStorage.setItem('UserLoginInfo',JSON.stringify(json))
+						mui.toast('登录成功，请稍后...',{
+							duration:500
+						});
+						setTimeout(function(){
+							window.location.href='index.html'
+						})
+					},600)
+				}
+			},
+			error:function(xhr,type,errorThrown){
+				console.log(xhr)
+			}
+		});
+	}
+	//验证码登录
+	function CodeLogins(){
+		window.location.href='CodeLogin.html'
+	}
+  </script>
+</head>
+<body style="background: white;">
+<header class="mui-bar mui-bar-nav">
+	<span class=" mui-icon  mui-pull-left" onclick="window.location.href='index.html'">
+		<img src="img/left.png" style="width: 25px;height: 25px;">
+	</span>
+	<h1 class="mui-title">登录</h1>
+</header>	
+<div class="mui-content">
+	<div id="" style="display: flex;justify-content: center;">
+		<img src="img/logo.png" style="max-height: 70px;">
+	</div>
+	<div class="mui-content-padded" style="margin-top:30px;margin-left: 0;margin-right: 0;">
+		<div class="mui-input-row mui-text-center">
+			<input type="text" class="mui-input-clear username" placeholder="请输入您的账户" style="border-radius: 20px;">
+		</div>	
+		<div class="mui-input-row mui-password" style="margin-top: 20px;">
+			<input type="password" class="mui-input-password userpsd" placeholder="请输入您的密码" style="border-radius: 20px;">
+		</div>	
+	</div>
+	<button type="button" class="mui-btn mui-btn-warning mui-btn-block" onclick="Login()" style="height: 40px;line-height:.8rem;margin-top: 40px;border-radius: 20px;">登录</button>
+	<!-- <div onclick="CodeLogins()" style="text-align: right;margin-top: 20px;color: #C0C0C0;font-size: .9rem;">验证码登录</div> -->
+</div>
+<script>
+	mui.init({
+		swipeBack: true //启用右滑关闭功能
+	});
+	var nativeWebview, imm, InputMethodManager;
+	var initNativeObjects = function() {
+		if (mui.os.android) {
+			var main = plus.android.runtimeMainActivity();
+			var Context = plus.android.importClass("android.content.Context");
+			InputMethodManager = plus.android.importClass("android.view.inputmethod.InputMethodManager");
+			imm = main.getSystemService(Context.INPUT_METHOD_SERVICE);
+		} else {
+			nativeWebview = plus.webview.currentWebview().nativeInstanceObject();
+		}
+	};
+	mui.plusReady(function() {
+		initNativeObjects();
+		showSoftInput();
+	});
+</script>
+<script type="text/javascript">
+	$(function(){
+		// var aa={username:'阿波',password:'123456'}
+		// var aas=encodeURIComponent(encrypt(encodeURIComponent(JSON.stringify(aa)),'1f975d8076e611e9'))
+		// console.log(aas)
+		// mui.showLoading("登陆中...","div");
+		// setTimeout(()=>{
+		// 	mui.hideLoading()
+		// 	mui.toast('登录成功',{
+		// 		duration:1000
+		// 	});
+		// },1500)
+	})
+</script>
+
+</body>
+</html>

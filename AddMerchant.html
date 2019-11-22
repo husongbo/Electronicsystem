@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html class="ui-page-login">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no"/>
+    <meta name="apple-mobile-web-app-capable" content="yes"/>
+    <meta name="apple-mobile-web-app-status-bar-style" content="black"/>
+    <title>新增商户</title>
+    <link href="css/mui.min.css" rel="stylesheet"/>
+	<link rel="stylesheet" href="loading/loadings.css">
+	<script src="js/jquery.js"></script>
+	<script src="js/vue.js"></script>
+	<script src="js/mui.min.js"></script>
+	<script src="util/crypto-js.js"></script>
+	<script src="util/util.js"></script>
+	<script src="util/md5.js"></script>
+	<script src="util/api.js"></script>
+	<script src="loading/loadings.js"></script>
+    <style>
+        .hqyzm{
+            position: absolute;
+            right: 10px;
+            top: 4px;
+			width: 90px;
+            background-color: #f0ad4e;
+            color: #fff;
+            border-radius: 30px;
+            border: none;
+        }
+		.mui-content{
+			background: white;
+			margin-top: 20px;
+		}
+		.mui-input-group:after,.mui-input-group:before{
+			height: 0;
+		}
+		input::-webkit-input-placeholder {
+			color: black;
+			font-size: .9rem;
+		}
+		.mui-input-row{
+			height: 50px!important;
+		}
+		.mui-input-row input{
+			height: 50px;
+			width: 60%!important;
+			font-size: .9rem;
+		}
+		label{
+			font-size: .9rem;
+		}
+    </style>
+</head>
+<body style="background: white;">
+    <header class="mui-bar mui-bar-nav">
+        <span class="mui-action-back mui-icon  mui-pull-left">
+        	<img src="img/left.png" style="width: 25px;height: 25px;">
+        </span>
+        <h1 class="mui-title">新增商户</h1>
+    </header>
+	<!-- 手机号验证 -->
+    <div class="mui-content" id="add">
+        <form class="mui-input-group">
+			<div class="mui-input-row">
+			    <label style="margin: 17px 15px;padding: 0;width: 30%;border-right: 1px solid rgb(240,240,240);">商户名</label>
+			    <input type="text" id="MerName" class="mui-input-clear mui-input" placeholder="请输入商户名"/>
+			</div>
+            <div class="mui-input-row">
+                <label style="margin: 17px 15px;padding: 0;width: 30%;border-right: 1px solid rgb(240,240,240);">商户号</label>
+                <input type="number" id="MerId" class="mui-input-clear mui-input" placeholder="请输入商户号"/>
+            </div>
+			<div class="mui-input-row">
+			    <label style="margin: 17px 15px;padding: 0;width: 30%;border-right: 1px solid rgb(240,240,240);">管理员号码</label>
+			    <input type="text" id="Adminphone" class="mui-input-clear mui-input" placeholder="请输入管理员手机号码"/>
+			</div>
+			<div class="mui-input-row">
+			    <label style="margin: 17px 15px;padding: 0;width: 30%;border-right: 1px solid rgb(240,240,240);">管理员名称</label>
+			    <input type="text" id="AdminName" class="mui-input-clear mui-input" placeholder="请输入管理员名称"/>
+			</div>
+			<div class="mui-input-row">
+			    <label style="margin: 17px 15px;padding: 0;width: 30%;border-right: 1px solid rgb(240,240,240);">初始站点名称</label>
+			    <input type="text" id="SiteName" class="mui-input-clear mui-input" placeholder="请输入初始站点名称"/>
+			</div>
+			<div class="mui-input-row">
+			    <label style="margin: 17px 15px;padding: 0;width: 30%;border-right: 1px solid rgb(240,240,240);">授权码</label>
+			    <input type="number" id="Code" class="mui-input-clear mui-input" placeholder="请输入授权码"/>
+			</div>
+        </form>
+        <div class="mui-content-padded">
+            <button class="mui-btn mui-btn-block mui-btn-danger border-radius" onclick="RegUser()" style="height: 40px;line-height:.8rem;margin-top: 40px;border-radius: 20px;background: #f0ad4e;border: 0;">确 定</button>
+        </div>
+    </div>
+	<script type="text/javascript">
+		var MerNames=document.getElementById('MerName')
+		var MerIds=document.getElementById('MerId')
+		var Adminphones=document.getElementById('Adminphone')
+		var AdminNames=document.getElementById('AdminName')
+		var SiteNames=document.getElementById('SiteName')
+		var Codes=document.getElementById('Code')
+		var YZPhone=/^1[3456789]\d{9}$/
+		function Verification(){
+			if($(MerNames)[0].value==''||$(MerIds)[0].value==''||$(Adminphones)[0].value==''||$(AdminNames)[0].value==''||$(SiteNames)[0].value==''){
+				mui.toast('文本框的值不可以为空')
+				return false
+			}
+			else if(!YZPhone.test($(Adminphones)[0].value)){
+				mui.toast('请输入正确的手机号')
+				return false
+			}
+			else{
+				return true
+			}
+		}
+		function RegUser(){
+			//var MdCode=md5($(Codes)[0].value).slice(0,16).toUpperCase()
+			//console.log(MdCode)
+			var Flag=Verification()
+			if(Flag){
+				
+				mui.showLoading("添加中...","div");
+				var MdCode=md5($(Codes)[0].value).slice(0,16)
+				var json={
+					method:'add',
+					merchantid:$(MerIds)[0].value,
+					merchantname:$(MerNames)[0].value,
+					sitename:$(SiteNames)[0].value,
+					realname:$(AdminNames)[0].value,
+					phone:$(Adminphones)[0].value
+				}
+				console.log(MdCode)
+				console.log(JSON.stringify(json))
+				var AesJson=encodeURIComponent(encrypt(encodeURIComponent(JSON.stringify(json)),MdCode))
+				$.ajax(`${MerchantMs}?params=${AesJson}`,{
+					data:{},
+					dataType:'json',//服务器返回json格式数据
+					type:'POST',//HTTP请求类型
+					timeout:10000,//超时时间设置为10秒；
+					success:function(response){
+						console.log(response)
+						setTimeout(function(){
+							mui.hideLoading()
+							if(response.MESSAGE=='新增商户成功'&&response.RESULT==1){
+								mui.toast(response.MESSAGE,{
+									duration:1000
+								});
+								setTimeout(()=>{
+									history.back(-1)
+								},1000)
+							}
+							else{
+								mui.toast(response.MESSAGE,{
+									duration:1000
+								});
+								$(MerIds)[0].value=''
+								$(MerNames)[0].value=''
+								$(SiteNames)[0].value=''
+								$(AdminNames)[0].value=''
+								$(Adminphones)[0].value=''
+								$(Codes)[0].value=''
+							}
+							
+						},1000)
+					},
+					error:function(xhr,type,errorThrown){
+						console.log(xhr)
+					}
+				});
+			}
+		}
+	</script>
+</body>
+</html>

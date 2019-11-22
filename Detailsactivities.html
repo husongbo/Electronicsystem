@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html class="ui-page-login">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no"/>
+    <meta name="apple-mobile-web-app-capable" content="yes"/>
+    <meta name="apple-mobile-web-app-status-bar-style" content="black"/>
+    <title>活动详情</title>
+   <link rel="stylesheet" href="css/mui.min.css">
+   <link rel="stylesheet" href="loading/loadings.css">
+   <link rel="stylesheet" type="text/css" href="css/mui.picker.min.css" />
+   <link href="css/mui.picker.css" rel="stylesheet" />
+   <link href="css/mui.poppicker.css" rel="stylesheet" />
+   <script src="js/jquery.js"></script>
+   <script src='https://cdn.bootcss.com/Chart.js/2.7.3/Chart.js'></script>
+   <script src="js/mui.min.js"></script>
+   <script src="loading/loadings.js"></script>
+   <script src="js/mui.picker.min.js"></script>
+   <script src="js/mui.picker.js"></script>
+   <script src="js/mui.poppicker.js"></script>
+   <script src="https://res.wx.qq.com/open/js/jweixin-1.0.0.js"></script>
+   <script src="util/crypto-js.js"></script>
+   <script src="util/util.js"></script>
+   <script src="util/md5.js"></script>
+   <script src="util/api.js"></script>
+   <script src="jsbin/jquery.min.js"></script>
+   <script src="jsbin/echarts.common.min.js"></script>
+   <script src="js/vue.js"></script>
+    <style>
+        .hqyzm{
+            position: absolute;
+            right: 10px;
+            top: 4px;
+			width: 90px;
+            background-color: #f0ad4e;
+            color: #fff;
+            border-radius: 30px;
+            border: none;
+        }
+		.mui-content{
+			background: white;
+			margin-top: 20px;
+		}
+		.mui-input-group:after,.mui-input-group:before{
+			height: 0;
+		}
+		input::-webkit-input-placeholder {
+			color: black;
+			font-size: 1rem;
+		}
+		#site option{
+			
+		}
+		.mui-input-row label~input, .mui-input-row label~select, .mui-input-row label~textarea{
+			width: 55%;
+		}
+		.drik{height: 100vh;background: rgba(0,0,0,0.3);position: fixed;z-index: 999;top: 0;left: 0;width: 100%;padding: 0 5%;display: flex;align-items: center;}
+		.drik-pos{width: 100%;height: 60vh;background: white;border-radius: 5px;position: relative;}
+		.close{display: flex;justify-content: flex-end;padding-top: 5px;padding-right: 5px;}
+		.drikall{display: flex;flex-direction: row;padding-left: 20px;align-items: center;padding-bottom:5px;border-bottom: 1px dotted rgb(240,240,240);}
+		.checkedall{display: flex;flex-direction: row;padding-left: 20px;align-items: center;border-bottom: 1px dotted rgb(240,240,240);padding-top: 5px;
+		padding-bottom: 5px;}
+		.checkedparent{
+			height: calc(60vh - 20vh);
+			overflow-y: scroll;
+		}
+		.SiteBtn{width: 80%;height: 40px;background: #ff8200;margin-left: 10%;color: white;line-height: 40px;text-align: center;border-radius: 5px;position: absolute;bottom:10px;}
+		.drinkhidden{display: none;}
+    </style>
+</head>
+<body style="background: white;">
+    <header class="mui-bar mui-bar-nav">
+        <span class="mui-action-back mui-icon  mui-pull-left">
+        	<img src="img/left.png" style="width: 25px;height: 25px;">
+        </span>
+        <h1 class="mui-title">活动详情(可修改)</h1>
+    </header>
+	<!-- 手机号验证 -->
+    <div class="mui-content" id="Deatil">
+        <form class="mui-input-group">
+            <div class="mui-input-row" style="height: 50px;">
+                <label style="margin: 15px 15px;padding: 0;width: 35%;border-right: 1px solid rgb(240,240,240);">活动名称</label>
+                <input type="text" id="ActName" v-model="DeatilJson.PM0001_ANAME"  style="height: 50px;" class="mui-input-clear mui-input"/>
+            </div>
+			<div class="mui-input-row">
+			    <label style="margin: 15px 15px;padding: 0;width: 35%;border-right: 1px solid rgb(240,240,240);">活动总金额</label>
+			    <input type="number" id="CountPrice" v-model="DeatilJson.PM0001_TAMOUNT" style="height: 50px;" class="mui-input-clear mui-input"/>
+			</div>
+			<div class="mui-input-row">
+			    <label style="margin: 15px 15px;padding: 0;width: 35%;border-right: 1px solid rgb(240,240,240);">活动单价</label>
+			    <input type="number" id="UtilsPrice" v-model="DeatilJson.PM0001_SAMOUNT" style="height: 50px;" class="mui-input-clear mui-input"/>
+			</div>
+			<div class="mui-input-row" style="display: flex;justify-content: space-between;">
+			    <label style="margin: 15px 15px;padding: 0;width: 35%;border-right: 1px solid rgb(240,240,240);">活动站点</label>
+				<div style="height: 40px;width: 55%;display: flex;align-items: center;" onclick="SelectSite()">已选择</div>
+				<div class="drik drinkhidden">
+					<div class="drik-pos">
+						<div class="close" onclick="drikClose()">
+							<img src="img/close.png" style="width: 25px;height: 25px;">
+						</div>
+						<!-- 全选 -->
+						<div class="drikall" onclick="CheckedAll(this)" rel='false'>
+							<img src="img/check.png" style="width: 25px;height: 25px;">
+							<span style="margin-left: 5px;font-size: .8rem;">全选</span>
+						</div>
+						<!-- 多选 -->
+						<div class="checkedparent" >
+							<div class="checkedall" rel="false" onclick="CheckedSite(this)" v-for="(item,index) in SiteList">
+								<img src="img/check.png" style="width: 25px;height: 25px;" :rel="item.ID">
+								<span style="margin-left: 5px;font-size: .8rem;">{{item.PM0006_NAME}}</span>
+							</div>
+						</div>
+						<!-- 确定 -->
+						<div class="SiteBtn" onclick="SiteClick()">确定</div>
+					</div>
+				</div>
+			    <!-- <input type="text" v-model="DeatilJson.PM0001_SITE" disabled style="height: 50px;" class="mui-input-clear mui-input"/> -->
+				<!-- <select id="site" style="color:black;font-size:1rem;">
+					<option value ="" style="display: none;">{{DeatilJson.PM0006_NAME}}</option>
+					<option v-for="(item,index) in SiteList" :value="item.PM0006_NO">{{item.PM0006_NAME}}</option>
+				</select> -->
+			</div>
+			<div class="mui-input-row" style="display: flex;justify-content: space-between;">
+			    <label style="margin: 15px 15px;padding: 0;width: 35%;border-right: 1px solid rgb(240,240,240);">活动日期(起)</label>
+			    <div class="startDate" style="height: 40px;width: 55%;display: flex;align-items: center;" data-options='{"type":"date"}'>{{DeatilJson.PM0001_BEGINTIME}}</div>
+			</div>
+			<div class="mui-input-row" style="display: flex;justify-content: space-between;">
+			    <label style="margin: 15px 15px;padding: 0;width: 35%;border-right: 1px solid rgb(240,240,240);">活动日期(止)</label>
+			    <div class="endDate" style="height: 40px;width: 55%;display: flex;align-items: center;" data-options='{"type":"date"}'>{{DeatilJson.PM0001_ENDTIME}}</div>
+			</div>
+			<div class="mui-input-row" style="display: flex;justify-content: space-between;">
+			    <label style="margin: 15px 15px;padding: 0;width: 35%;border-right: 1px solid rgb(240,240,240);">活动状态</label>
+				<div style="display: flex;width: 55%;">
+					<div class="mui-switch mui-switch-blue mui-switch-mini" :class="{'mui-active':ActiveFlag}" rel="false">
+						<div class="mui-switch-handle"></div>
+					</div>
+				</div>
+			    <!-- <div id="" style="width: 50%;display: flex;align-items: center;">
+			    	<div v-if="DeatilJson.PM0001_STATE!='1'" style="width: 10px;height: 10px;background: red;border-radius: 50%;"></div>
+					<div v-else style="width: 10px;height: 10px;background:green;border-radius: 50%;"></div>
+			    </div> -->
+			</div>
+        </form>
+		<button type="button" onclick="MObityAct()" style="height: 40px;line-height: 40px;padding: 0;width: 70%;position: absolute;bottom:40px;left: 15%;" class="mui-btn mui-btn-warning mui-btn-block">确定修改</button>
+       <!-- <div class="mui-content-padded">
+            <button class="mui-btn mui-btn-block mui-btn-danger border-radius" onclick="" style="height: 40px;line-height:.8rem;margin-top: 40px;border-radius: 20px;background: #f0ad4e;border: 0;">确 定</button>
+        </div> -->
+    </div>
+	<script type="text/javascript">
+		new Vue({
+			el: '#Deatil',
+			data: {
+				DeatilJson:{},
+				SiteList:[],
+				ActiveFlag:false,
+			},
+			created(){
+				var flag=this.FlagToken()
+				if(flag){
+					this.DeatilJson=JSON.parse(localStorage.getItem('Items'))
+					if(this.DeatilJson.PM0001_STATE==1){
+						this.ActiveFlag=true
+						$(".mui-content .mui-switch").attr('rel','true')
+					}
+					this.DeatilJson.PM0001_BEGINTIME=this.DeatilJson.PM0001_BEGINTIME.slice(0,10)
+					this.DeatilJson.PM0001_ENDTIME=this.DeatilJson.PM0001_ENDTIME.slice(0,10)
+					var _this=this
+					var UserInfo=JSON.parse(localStorage.getItem('UserInfo'))
+					var json={
+						merchantid:JSON.parse(UserInfo).PM0003_APP_STORE_ID
+					}
+					var Toation=JSON.parse(UserInfo).PM0003_TOKEN
+					var AesJson=encodeURIComponent(encrypt(JSON.stringify(json),JSON.parse(UserInfo).PM0003_TOKEN))
+					$.ajax(`${GetSiteList}?params=${AesJson}&smsuserid=${JSON.parse(UserInfo).PM0003_ID}`,{
+						data:{},
+						dataType:'json',//服务器返回json格式数据
+						type:'POST',//HTTP请求类型
+						timeout:10000,//超时时间设置为10秒；
+						success:function(response){
+							_this.SiteList=JSON.parse(response.DATA)
+							console.log(_this.SiteList)
+						},
+						error:function(xhr,type,errorThrown){
+							console.log(xhr)
+						}
+					});
+				}
+				console.log(this.DeatilJson)
+			},
+			methods:{
+				FlagToken(){
+					var UserInfo=JSON.parse(JSON.parse(localStorage.getItem('UserInfo')))
+					var UserPsd=md5(JSON.parse(localStorage.getItem('UserLoginInfo')).password).slice(0,16).toUpperCase()
+					var UserToken={
+						method:'loginstate',
+						userid:UserInfo.PM0003_ID,
+						token:UserInfo.PM0003_TOKEN
+					}
+					console.log(UserToken)
+					console.log(UserPsd)
+					var Flag=false
+					var TokenAesJson=encodeURIComponent(encrypt(JSON.stringify(UserToken),UserPsd))
+					$.ajax(`${GetLoginState}?params=${TokenAesJson}&smsusername=${UserInfo.PM0003_PHONE}`,{
+						data:{},
+						dataType:'json',//服务器返回json格式数据
+						type:'POST',//HTTP请求类型
+						async:false,  //同步方式
+						timeout:10000,//超时时间设置为10秒；
+						success:function(response){
+							console.log(response)
+							if(parseInt(response.LOGINSTATUS)==2&&parseInt(response.RESULT)==0){
+								mui.toast("账号已在另一方登录，已下线",{
+									duration:500
+								});
+								localStorage.removeItem('UserInfo')
+								localStorage.removeItem('UserLoginInfo')
+								setTimeout(function(){
+									window.location.href='index.html'
+								},600)
+								Flag=false
+							}
+							else{
+								Flag=true
+							}
+						},
+						error:function(xhr,type,errorThrown){
+							console.log(xhr)
+						}
+					});
+					return Flag
+				},
+			}
+		})
+	</script>
+	<script type="text/javascript">
+		var isActive=false
+		mui('.mui-content .mui-switch').each(function() {
+			this.addEventListener('toggle', function(event) {
+				if($(this).attr('rel')=='false'){
+					$(this).attr('rel','true')
+				}
+				else{
+					$(this).attr('rel','false')
+				}
+			});
+		});
+		(function($,doc) {
+			$('.mui-scroll-wrapper').scroll({
+				indicators: true //是否显示滚动条
+			});
+			var startdate = $('.startDate');
+			//开始日期
+			startdate[0].addEventListener('tap', function() {
+				var _self = this;
+				if(_self.picker) {
+					_self.picker.show(function (rs) {
+						console.log(rs)
+						startdate[0].innerText =rs.text;
+						_self.picker.dispose();
+						_self.picker = null;
+					});
+				} else {
+					var optionsJson = this.getAttribute('data-options') || '{}';
+					var options = JSON.parse(optionsJson);
+					var id = this.getAttribute('id');
+						_self.picker = new $.DtPicker(options);
+						_self.picker.show(function(rs) {
+						startdate[0].innerText =rs.text;
+						_self.picker.dispose();
+						_self.picker = null;
+					});
+				}			
+			}, false);
+			var enddate = $('.endDate');
+			//结束日期
+			enddate[0].addEventListener('tap', function() {
+				var _self = this;
+				if(_self.picker) {
+					_self.picker.show(function (rs) {
+						console.log(rs)
+						enddate[0].innerText =rs.text;
+						_self.picker.dispose();
+						_self.picker = null;
+					});
+				} else {
+					var optionsJson = this.getAttribute('data-options') || '{}';
+					var options = JSON.parse(optionsJson);
+					var id = this.getAttribute('id');
+						_self.picker = new $.DtPicker(options);
+						_self.picker.show(function(rs) {
+						enddate[0].innerText =rs.text;
+						_self.picker.dispose();
+						_self.picker = null;
+					});
+				}			
+			}, false);
+		})(mui,document);
+		var DeatilJson=JSON.parse(localStorage.getItem('Items'))
+		let UserInfo=JSON.parse(localStorage.getItem('UserInfo'))
+		var ActNames=document.getElementById('ActName')//活动名称
+		var CountPrices=document.getElementById('CountPrice')//总金额
+		var UtilsPrices=document.getElementById('UtilsPrice')//单价
+		var Site=document.getElementById('site')//站点
+		var startDates=document.getElementsByClassName('startDate')//开始日期
+		var endDates=document.getElementsByClassName('endDate')//结束日期
+		var Sitevalue=[]
+		function SelectSite(){
+			console.log()
+			$(".checkedall").each(function(){
+				var siteid=$(this).find('img').attr('src','img/check.png')
+				$(this).attr('rel','false')
+			})
+			var SiteArr=DeatilJson.PM0001_SITE.split(',')
+			SiteArr.forEach((item)=>{
+				$(".checkedall").each(function(){
+					var siteid=$(this).find('img').attr('rel')
+					if(siteid==item){
+						var siteid=$(this).find('img').attr('src','img/checked.png')
+						$(this).attr('rel','true')
+					}
+				})
+			})
+			$(".drik").removeClass('drinkhidden')
+		}
+		function drikClose(){
+			$(".drik").addClass('drinkhidden')
+		}
+		function CheckedSite(val){
+			var rel=$(val).attr('rel')
+			if(rel=='false'){
+				$(val).attr('rel','true')
+				$(val).find('img').attr('src','img/checked.png')
+			}
+			else{
+				$(".drikall").find('img').attr('src','img/check.png')
+				$(val).attr('rel','false')
+				$(val).find('img').attr('src','img/check.png')
+			}
+			console.log($(val).attr('rel'))
+		}
+		function CheckedAll(val){
+			var rel=$(val).attr('rel')
+			if(rel=='false'){
+				$(".checkedall").each(function(){
+					$(this).find('img').attr('src','img/checked.png')
+					$(this).attr('rel','true')
+				})
+				$(val).find('img').attr('src','img/checked.png')
+				$(val).attr('rel','true')
+			}
+			else{
+				$(".checkedall").each(function(){
+					$(this).find('img').attr('src','img/check.png')
+					$(this).attr('rel','false')
+				})
+				$(val).find('img').attr('src','img/check.png')
+				$(val).attr('rel','false')
+			}
+			console.log(rel)
+		}
+		function SiteClick(){
+			Sitevalue=[]
+			$(".checkedall").each(function(){
+				var flag=$(this).attr('rel')
+				if(flag=='true'){
+					var siteid=$(this).find('img').attr('rel')
+					Sitevalue.push(siteid)
+				}
+			})
+			if(Sitevalue.length==0){
+				mui.toast('请选择站点')
+			}
+			else{
+				drikClose()
+				$(".selectsite").text('已选择')
+			}
+			console.log(Sitevalue)
+		}
+		
+		function MObityAct(){
+			var Flag=FlagToken()
+			if(Flag){
+				mui.showLoading("修改中...","div");
+				var sitevalues=''
+				var activetext=$('.mui-content .mui-switch').attr('rel')
+				if(activetext=='true'){
+					state='1'
+				}
+				else{
+					state='0'
+				}
+				if(Sitevalue.length==1){
+					sitevalues=Sitevalue[0]
+				}
+				else{
+					Sitevalue.forEach((item,index)=>{
+						if(Sitevalue.length==index+1){
+							sitevalues+=item
+						}
+						else{
+							sitevalues+=item+","
+						}
+					})
+				}
+				var json={
+					method:'edit',
+					merchantid:JSON.parse(UserInfo).PM0003_APP_STORE_ID,
+					promotename:$(ActNames)[0].value,
+					promotetamount:$(CountPrices)[0].value,
+					state:state,
+					promotesamount:$(UtilsPrices)[0].value,
+					siteid:sitevalues,
+					begintime:startDates[0].innerText,
+					endtime:endDates[0].innerText,	
+					createuser:JSON.parse(UserInfo).PM0003_PHONE,
+					promoteid:DeatilJson.PM0001_NO
+				}
+				var AesJson=encodeURIComponent(encrypt(encodeURIComponent(JSON.stringify(json)),JSON.parse(UserInfo).PM0003_TOKEN))
+				console.log(AesJson)
+				console.log(json)
+				$.ajax(`${PromoteMs}?params=${AesJson}&smsuserid=${JSON.parse(UserInfo).PM0003_ID}`,{
+					data:{},
+					dataType:'json',//服务器返回json格式数据
+					type:'POST',//HTTP请求类型
+					timeout:10000,//超时时间设置为10秒；
+					success:function(response){
+						console.log(response)
+						if(parseInt(response.RESULT)==1&&response.MESSAGE=='修改活动成功'){
+							setTimeout(function(){
+								mui.hideLoading()
+								mui.toast(response.MESSAGE,{
+									duration:1000
+								});
+								setTimeout(function(){
+									history.back(-1)
+								},500)
+							},1500)
+						}
+						else{
+							setTimeout(function(){
+								mui.hideLoading()
+								mui.toast('修改活动失败',{
+									duration:1000
+								});
+							},1500)
+						}
+					},
+					error:function(xhr,type,errorThrown){
+						console.log(xhr)
+					}
+				});
+			}		
+		}
+	</script>	
+</body>
+</html>
